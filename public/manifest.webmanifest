@@ -1,0 +1,19 @@
+{
+  "name": "ChatFind — WhatsApp Search Companion",
+  "short_name": "ChatFind",
+  "description": "Private, local search for exported WhatsApp conversations.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1e8",
+  "theme_color": "#176b5b",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
