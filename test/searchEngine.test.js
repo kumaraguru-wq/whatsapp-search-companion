@@ -58,6 +58,7 @@ test('creates separate searchable chat, link and attachment items', () => {
   assert.equal(items.filter((item) => item.kind === 'link').length, 1)
   assert.equal(items.filter((item) => item.kind === 'pdf').length, 1)
   assert.equal(items.filter((item) => item.kind === 'excel').length, 1)
+  assert.equal(items.find((item) => item.kind === 'pdf').messageId, 'm1')
 })
 
 test('finds partial keywords and ranks the matching attachment', () => {

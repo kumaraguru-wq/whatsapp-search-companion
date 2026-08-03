@@ -316,6 +316,60 @@ export async function getStoredAttachment(attachmentId) {
   return attachment
 }
 
+export async function loadMessageContext(chatId, messageId, radius = 2) {
+  const database = await openDatabase()
+  const transaction = database.transaction(['chats', 'messages', 'attachments'], 'readonly')
+  const completed = transactionToPromise(transaction)
+  const chatRequest = requestToPromise(transaction.objectStore('chats').get(chatId))
+  const messagesRequest = requestToPromise(
+    transaction.objectStore('messages').index('by_chat').getAll(IDBKeyRange.only(chatId)),
+  )
+  const attachmentsRequest = requestToPromise(
+    transaction.objectStore('attachments').index('by_chat').getAll(IDBKeyRange.only(chatId)),
+  )
+  const [chat, allMessages, allAttachments] = await Promise.all([
+    chatRequest,
+    messagesRequest,
+    attachmentsRequest,
+  ])
+  await completed
+
+  if (!chat) throw new Error('That saved chat no longer exists on this device.')
+  const sortedMessages = allMessages.sort((a, b) =>
+    (a.timestamp ?? '').localeCompare(b.timestamp ?? ''),
+  )
+  const selectedIndex = sortedMessages.findIndex((message) => message.id === messageId)
+  if (selectedIndex < 0) throw new Error('The original message could not be found.')
+
+  const messages = sortedMessages.slice(
+    Math.max(0, selectedIndex - radius),
+    Math.min(sortedMessages.length, selectedIndex + radius + 1),
+  )
+  const neededAttachmentIds = new Set(messages.flatMap((message) => message.attachmentIds ?? []))
+  const attachments = allAttachments
+    .filter((attachment) => neededAttachmentIds.has(attachment.id))
+    .map((attachment) => ({
+      ...attachment,
+      url: URL.createObjectURL(attachment.blob),
+      matched: true,
+    }))
+  const attachmentsById = new Map(attachments.map((attachment) => [attachment.id, attachment]))
+
+  return {
+    chatName: chat.name,
+    sourceName: chat.sourceName,
+    participants: chat.participants,
+    selectedMessageId: messageId,
+    messages: messages.map((message) => ({
+      ...message,
+      attachments: (message.attachmentIds ?? [])
+        .map((attachmentId) => attachmentsById.get(attachmentId))
+        .filter(Boolean),
+    })),
+    attachments,
+  }
+}
+
 export async function getStorageEstimate() {
   if (!navigator.storage?.estimate) return null
   const estimate = await navigator.storage.estimate()

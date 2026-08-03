@@ -7,6 +7,7 @@ import {
   deleteLocalDatabaseForTests,
   getStoredAttachment,
   listStoredChats,
+  loadMessageContext,
   loadStoredChat,
   saveImportedChat,
 } from '../src/lib/localDatabase.js'
@@ -56,6 +57,14 @@ test('persists an import and skips the same messages and attachment on re-import
     const openedAttachment = await getStoredAttachment(stored.attachments[0].id)
     assert.equal(openedAttachment.name, 'Circular.pdf')
     assert.equal(openedAttachment.mimeType, 'application/pdf')
+    const context = await loadMessageContext(chats[0].id, stored.messages[0].id, 1)
+    try {
+      assert.equal(context.selectedMessageId, stored.messages[0].id)
+      assert.equal(context.messages.length, 2)
+      assert.equal(context.messages[0].attachments[0].name, 'Circular.pdf')
+    } finally {
+      releaseImport(context)
+    }
   } finally {
     releaseImport(stored)
     await deleteLocalDatabaseForTests()

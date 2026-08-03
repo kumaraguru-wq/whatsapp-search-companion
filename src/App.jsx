@@ -4,6 +4,7 @@ import {
   getStorageEstimate,
   getStoredAttachment,
   listStoredChats,
+  loadMessageContext,
   loadSearchCorpus,
   loadStoredChat,
   requestPersistentStorage,
@@ -25,6 +26,16 @@ const EMPTY_SEARCH_FILTERS = {
   fromDate: '',
   toDate: '',
 }
+
+const RESULT_TABS = [
+  { value: 'all', label: 'All' },
+  { value: 'chat', label: 'Chats' },
+  { value: 'pdf', label: 'PDFs' },
+  { value: 'document', label: 'Documents' },
+  { value: 'excel', label: 'Excel' },
+  { value: 'link', label: 'Links' },
+  { value: 'image', label: 'Images' },
+]
 
 function ShieldIcon() {
   return (
@@ -161,7 +172,7 @@ function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
   )
 }
 
-function SearchSection({ items, filters, onFiltersChange, onOpenResult }) {
+function SearchSection({ items, filters, onFiltersChange, onOpenResult, onViewContext }) {
   const options = useMemo(() => getSearchOptions(items), [items])
   const hasCriteria = Boolean(
     filters.query.trim() ||
@@ -171,10 +182,21 @@ function SearchSection({ items, filters, onFiltersChange, onOpenResult }) {
       filters.fromDate ||
       filters.toDate,
   )
-  const results = useMemo(
-    () => (hasCriteria ? searchItems(items, { ...filters, limit: 60 }) : []),
+  const baseResults = useMemo(
+    () => (hasCriteria
+      ? searchItems(items, { ...filters, type: 'all', limit: Math.max(items.length, 1) })
+      : []),
     [filters, hasCriteria, items],
   )
+  const tabCounts = useMemo(() => {
+    const counts = { all: baseResults.length }
+    for (const result of baseResults) counts[result.kind] = (counts[result.kind] ?? 0) + 1
+    return counts
+  }, [baseResults])
+  const filteredResults = filters.type === 'all'
+    ? baseResults
+    : baseResults.filter((result) => result.kind === filters.type)
+  const results = filteredResults.slice(0, 60)
 
   function updateFilter(name, value) {
     onFiltersChange((current) => ({ ...current, [name]: value }))
@@ -245,47 +267,128 @@ function SearchSection({ items, filters, onFiltersChange, onOpenResult }) {
       {items.length === 0 && <p className="search-empty">Import a chat to begin searching.</p>}
       {hasCriteria && items.length > 0 && (
         <div className="search-results" aria-live="polite">
+          <div className="result-tabs" role="tablist" aria-label="Search result categories">
+            {RESULT_TABS.map((tab) => (
+              <button
+                className={filters.type === tab.value ? 'is-active' : ''}
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={filters.type === tab.value}
+                onClick={() => updateFilter('type', tab.value)}
+              >
+                {tab.label}<span>{tabCounts[tab.value] ?? 0}</span>
+              </button>
+            ))}
+          </div>
           <div className="search-result-count">
-            <strong>{results.length}</strong> {results.length === 1 ? 'result' : 'results'}
-            {results.length === 60 && ' (showing the first 60)'}
+            <strong>{filteredResults.length}</strong>{' '}
+            {filteredResults.length === 1 ? 'result' : 'results'}
+            {filteredResults.length > 60 && ' (showing the first 60)'}
           </div>
           {results.length === 0 ? (
             <p className="search-empty">No saved item matches those words and filters.</p>
           ) : (
             <div className="day-four-results">
               {results.map((result) => (
-                <button
-                  className="search-result-card"
-                  key={result.id}
-                  type="button"
-                  onClick={() => onOpenResult(result)}
-                  disabled={!result.available}
-                >
+                <article className="search-result-card" key={result.id}>
                   <span className={`result-kind kind-${result.kind}`}>{result.kind}</span>
-                  <div>
+                  <button className="result-copy" type="button" onClick={() => onViewContext(result)}>
                     <h3>{result.title}</h3>
                     <p>{result.content || result.title}</p>
                     <small>{result.chatName}{result.sender ? ` · ${result.sender}` : ''}</small>
-                  </div>
+                  </button>
                   <span className="result-tail">
                     <time>{result.timestamp?.slice(0, 10) ?? result.dateText}</time>
-                    <small>
+                    <button
+                      type="button"
+                      disabled={!result.available}
+                      onClick={() => (
+                        result.kind === 'chat' ? onViewContext(result) : onOpenResult(result)
+                      )}
+                    >
                       {!result.available
                         ? 'Not included in export'
                         : result.kind === 'chat'
-                          ? 'View chat'
+                          ? 'View context'
                           : result.kind === 'link'
                             ? 'Open link'
                             : 'Open file'}
-                    </small>
+                    </button>
                   </span>
-                </button>
+                </article>
               ))}
             </div>
           )}
         </div>
       )}
     </section>
+  )
+}
+
+function MessageContextViewer({ context, onClose, onOpenAttachment }) {
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return (
+    <div
+      className="context-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <section className="context-panel" role="dialog" aria-modal="true" aria-labelledby="context-heading">
+        <header>
+          <div>
+            <span className="section-kicker">Original conversation</span>
+            <h2 id="context-heading">{context.chatName}</h2>
+          </div>
+          <button className="context-close" type="button" onClick={onClose} aria-label="Close message context">
+            ×
+          </button>
+        </header>
+
+        <div className="context-messages">
+          {context.messages.map((message) => (
+            <article
+              className={message.id === context.selectedMessageId ? 'is-selected' : ''}
+              key={message.id}
+            >
+              <div className="message-meta">
+                <strong>{message.sender ?? 'WhatsApp system'}</strong>
+                <time>{displayTime(message)}</time>
+              </div>
+              <p>{message.content || 'Attachment'}</p>
+              {(message.attachments ?? []).map((attachment) => (
+                <button
+                  className="context-attachment"
+                  key={attachment.id}
+                  type="button"
+                  onClick={() => onOpenAttachment(attachment.id)}
+                >
+                  Open {attachment.name}
+                </button>
+              ))}
+              {(message.links ?? []).map((link) => (
+                <a className="context-link" key={link} href={link} target="_blank" rel="noreferrer">
+                  Open link
+                </a>
+              ))}
+            </article>
+          ))}
+        </div>
+
+        <footer>
+          The highlighted message is the matching result. Nearby messages provide context.
+        </footer>
+      </section>
+    </div>
   )
 }
 
@@ -384,8 +487,11 @@ function App() {
   const [isOpening, setIsOpening] = useState(false)
   const [searchIndex, setSearchIndex] = useState([])
   const [searchFilters, setSearchFilters] = useState({ ...EMPTY_SEARCH_FILTERS })
+  const [messageContext, setMessageContext] = useState(null)
+  const [isContextLoading, setIsContextLoading] = useState(false)
 
   useEffect(() => () => releaseImport(importedChat), [importedChat])
+  useEffect(() => () => releaseImport(messageContext), [messageContext])
 
   const refreshLibrary = useCallback(async () => {
     const [chats, estimate, corpus] = await Promise.all([
@@ -472,6 +578,24 @@ function App() {
     }
   }
 
+  async function handleViewContext(result) {
+    if (!result.messageId) {
+      if (result.available) await handleOpenSearchResult(result)
+      return
+    }
+
+    setIsContextLoading(true)
+    setLibraryError('')
+    try {
+      const context = await loadMessageContext(result.chatId, result.messageId, 2)
+      setMessageContext(context)
+    } catch (error) {
+      setLibraryError(error instanceof Error ? error.message : 'Message context could not be opened.')
+    } finally {
+      setIsContextLoading(false)
+    }
+  }
+
   return (
     <main>
       <nav className="topbar" aria-label="Primary navigation">
@@ -503,12 +627,25 @@ function App() {
         filters={searchFilters}
         onFiltersChange={setSearchFilters}
         onOpenResult={handleOpenSearchResult}
+        onViewContext={handleViewContext}
       />
+      {isContextLoading && <p className="context-loading" role="status">Opening message context…</p>}
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
       {importedChat && <ImportPreview chat={importedChat} importReport={importReport} />}
 
+      {messageContext && (
+        <MessageContextViewer
+          context={messageContext}
+          onClose={() => setMessageContext(null)}
+          onOpenAttachment={(attachmentId) => handleOpenSearchResult({
+            available: true,
+            attachmentId,
+          })}
+        />
+      )}
+
       <footer>
-        <span>Day 4 smart search</span>
+        <span>Day 5 result explorer</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>

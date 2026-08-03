@@ -105,6 +105,7 @@ function makeItem({
     kind,
     chatId: chat.id,
     chatName: chat.name,
+    messageId: message?.id ?? null,
     sender,
     timestamp: message?.timestamp ?? null,
     dateText: message?.dateText ?? '',
