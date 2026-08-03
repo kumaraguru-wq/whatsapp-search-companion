@@ -67,6 +67,13 @@ function normalizeForIdentity(value) {
     .trim()
 }
 
+function latestTimestamp(messages) {
+  return messages.reduce((latest, message) => {
+    if (!message.timestamp) return latest
+    return !latest || message.timestamp > latest ? message.timestamp : latest
+  }, null)
+}
+
 async function hashText(value) {
   const bytes = new TextEncoder().encode(value)
   const digest = await crypto.subtle.digest('SHA-256', bytes)
@@ -203,6 +210,7 @@ export async function saveImportedChat(importedChat) {
       ...(existingChat?.participants ?? []),
       ...importedChat.participants,
     ])].sort((a, b) => a.localeCompare(b))
+    const importedLatestMessageAt = latestTimestamp(messageRecords)
     const chat = {
       id: chatId,
       name: importedChat.chatName,
@@ -211,6 +219,10 @@ export async function saveImportedChat(importedChat) {
       participants,
       messageCount: (existingChat?.messageCount ?? 0) + newMessages.length,
       attachmentCount: (existingChat?.attachmentCount ?? 0) + newAttachments.length,
+      latestMessageAt: [existingChat?.latestMessageAt, importedLatestMessageAt]
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? null,
       createdAt: existingChat?.createdAt ?? now,
       updatedAt: now,
     }
@@ -239,11 +251,29 @@ export async function saveImportedChat(importedChat) {
 
 export async function listStoredChats() {
   const database = await openDatabase()
-  const transaction = database.transaction('chats', 'readonly')
+  const transaction = database.transaction(['chats', 'messages'], 'readonly')
   const completed = transactionToPromise(transaction)
-  const chats = await requestToPromise(transaction.objectStore('chats').getAll())
+  const chatsRequest = requestToPromise(transaction.objectStore('chats').getAll())
+  const messagesRequest = requestToPromise(transaction.objectStore('messages').getAll())
+  const [chats, messages] = await Promise.all([chatsRequest, messagesRequest])
   await completed
-  return chats.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+
+  const latestByChat = new Map()
+  for (const message of messages) {
+    if (!message.timestamp) continue
+    const current = latestByChat.get(message.chatId)
+    if (!current || message.timestamp > current) latestByChat.set(message.chatId, message.timestamp)
+  }
+
+  return chats
+    .map((chat) => ({
+      ...chat,
+      latestMessageAt: [chat.latestMessageAt, latestByChat.get(chat.id)]
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? null,
+    }))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
 export async function loadStoredChat(chatId) {

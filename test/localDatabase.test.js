@@ -47,6 +47,7 @@ test('persists an import and skips the same messages and attachment on re-import
   assert.equal(chats.length, 1)
   assert.equal(chats[0].messageCount, 3)
   assert.equal(chats[0].attachmentCount, 1)
+  assert.equal(chats[0].latestMessageAt, '2026-08-03T09:30:00')
 
   const stored = await loadStoredChat(chats[0].id)
   try {

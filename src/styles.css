@@ -1243,3 +1243,294 @@ footer {
     scroll-behavior: auto !important;
   }
 }
+
+/* Dark glass theme */
+:root {
+  color: #e9f4f0;
+  background: #07110f;
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 4%, rgba(38, 195, 154, 0.14), transparent 31rem),
+    radial-gradient(circle at 88% 20%, rgba(90, 105, 230, 0.1), transparent 28rem),
+    linear-gradient(155deg, #091512 0%, #07100f 48%, #090d13 100%);
+  background-attachment: fixed;
+}
+
+.brand-mark,
+.actions button,
+.drop-zone button,
+.result-tabs button.is-active,
+.context-loading {
+  background: linear-gradient(135deg, #25c79d, #168c77);
+  box-shadow: 0 12px 30px rgba(27, 190, 149, 0.2);
+}
+
+.privacy-pill,
+.section-kicker,
+.search-result-count strong,
+.result-tail button,
+.message-meta strong,
+.file-summary a:hover span {
+  color: #59dfbb;
+}
+
+.privacy-pill {
+  background: rgba(37, 199, 157, 0.1);
+  border-color: rgba(89, 223, 187, 0.2);
+}
+
+.eyebrow,
+.feature-number {
+  color: #f1a477;
+}
+
+h1,
+.section-heading h2,
+.preview-title-row h2,
+.summary-grid strong,
+.context-panel h2 {
+  color: #f3faf7;
+}
+
+.hero-copy,
+.section-heading > p,
+.preview-title-row p,
+.feature-grid p,
+.drop-zone p,
+.search-result-count,
+.participant-list p,
+.file-summary > p,
+.storage-note,
+footer {
+  color: #91a7a0;
+}
+
+.feature-grid,
+.summary-grid {
+  border-color: rgba(197, 235, 224, 0.13);
+}
+
+.feature-grid article + article,
+.summary-grid > div + div {
+  border-color: rgba(197, 235, 224, 0.13);
+}
+
+.chat-library button,
+.drop-zone,
+.day-four-results .search-result-card,
+.search-empty {
+  color: #dceae5;
+  background: rgba(20, 36, 33, 0.78);
+  border-color: rgba(167, 218, 202, 0.13);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.chat-library button:hover,
+.day-four-results .search-result-card:hover {
+  background: rgba(27, 49, 44, 0.96);
+  border-color: rgba(89, 223, 187, 0.36);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
+}
+
+.chat-initial,
+.upload-icon {
+  color: #72e8c7;
+  background: rgba(37, 199, 157, 0.14);
+  border: 1px solid rgba(89, 223, 187, 0.16);
+}
+
+.chat-card-copy strong,
+.drop-zone h3,
+.preview-columns h3 {
+  color: #eef7f4;
+}
+
+.chat-card-copy small,
+.chat-library time {
+  color: #82968f;
+}
+
+.chat-card-copy .chat-coverage {
+  margin-top: 2px;
+  color: #58d9b6;
+  font-weight: 750;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.search-shell,
+.preview-section,
+.context-panel {
+  color: #dceae5;
+  background: rgba(12, 25, 22, 0.94);
+  border-color: rgba(167, 218, 202, 0.14);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.28);
+}
+
+.search-box svg {
+  fill: #59dfbb;
+}
+
+.search-box input,
+.search-filters select,
+.search-filters input {
+  color: #e5f1ed;
+}
+
+.search-box input::placeholder,
+.search-filters span {
+  color: #728780;
+}
+
+.search-box button {
+  color: #ffc09b;
+  background: rgba(214, 116, 73, 0.14);
+}
+
+.search-filters,
+.search-filters label + label,
+.context-panel > header,
+.context-panel > footer {
+  border-color: rgba(167, 218, 202, 0.11);
+}
+
+.search-filters select option {
+  color: #e5f1ed;
+  background: #10201d;
+}
+
+.result-tabs button {
+  color: #9bb0a9;
+  background: rgba(20, 36, 33, 0.72);
+  border-color: rgba(167, 218, 202, 0.13);
+}
+
+.result-tabs button span {
+  background: rgba(208, 239, 229, 0.08);
+}
+
+.result-tabs button.is-active {
+  color: #04110d;
+  border-color: #36cda7;
+}
+
+.result-kind {
+  color: #68e0bf;
+  background: rgba(37, 199, 157, 0.12);
+}
+
+.kind-pdf {
+  color: #ff9b89;
+  background: rgba(225, 89, 69, 0.14);
+}
+
+.kind-excel {
+  color: #7de0a4;
+  background: rgba(62, 179, 105, 0.14);
+}
+
+.kind-link {
+  color: #94b8ff;
+  background: rgba(77, 123, 218, 0.15);
+}
+
+.kind-image {
+  color: #d3a8ed;
+  background: rgba(151, 90, 186, 0.16);
+}
+
+.day-four-results h3,
+.message-list article > p,
+.context-messages article > p {
+  color: #d9e8e3;
+}
+
+.day-four-results p,
+.day-four-results small,
+.day-four-results time,
+.message-meta time,
+.message-preview-heading span {
+  color: #839790;
+}
+
+.context-backdrop {
+  background: rgba(2, 8, 7, 0.78);
+}
+
+.context-close,
+.participant-list span {
+  color: #b5c8c1;
+  background: #192a26;
+}
+
+.context-messages article,
+.message-list article {
+  background: #12231f;
+}
+
+.context-messages article.is-selected {
+  background: #15362e;
+  border-color: rgba(89, 223, 187, 0.42);
+  box-shadow: 0 0 0 3px rgba(37, 199, 157, 0.09);
+}
+
+.context-attachment,
+.context-link,
+.attachment-chip {
+  color: #68e0bf;
+  background: #0b1916;
+  border-color: rgba(89, 223, 187, 0.2);
+}
+
+.context-panel > footer {
+  color: #82968f;
+  background: #0b1714;
+}
+
+.drop-zone {
+  border-color: rgba(89, 223, 187, 0.34);
+}
+
+.drop-zone.is-dragging {
+  background: rgba(37, 199, 157, 0.12);
+  border-color: #59dfbb;
+}
+
+.error-message {
+  color: #ffaaa0;
+  background: rgba(181, 58, 44, 0.18);
+  border: 1px solid rgba(255, 139, 126, 0.16);
+}
+
+.parsed-badge,
+.save-report {
+  color: #67dfbe;
+  background: rgba(37, 199, 157, 0.1);
+  border-color: rgba(89, 223, 187, 0.15);
+}
+
+.save-report span,
+.summary-grid span,
+.file-summary small {
+  color: #839b93;
+}
+
+.file-summary a {
+  color: #cce0da;
+  border-color: rgba(167, 218, 202, 0.1);
+}
+
+.message-list article.system-message {
+  background: #272218;
+}
+
+.system-message .message-meta strong {
+  color: #e3bd83;
+}
+
+.storage-note {
+  border-color: rgba(167, 218, 202, 0.11);
+}

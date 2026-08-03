@@ -65,6 +65,18 @@ function displayTime(message) {
   return message.timestamp?.replace('T', ' ') ?? `${message.dateText}, ${message.timeText}`
 }
 
+function formatChatCoverageDate(timestamp) {
+  if (!timestamp) return 'Date unavailable'
+  const [year, month, day] = timestamp.slice(0, 10).split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  if (Number.isNaN(date.getTime())) return 'Date unavailable'
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
 function ImportPanel({ onImported, importedChat }) {
   const inputRef = useRef(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -163,8 +175,11 @@ function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
             <span className="chat-card-copy">
               <strong>{chat.name}</strong>
               <small>{chat.messageCount} messages · {chat.attachmentCount} files</small>
+              <small className="chat-coverage">
+                Chat available up to {formatChatCoverageDate(chat.latestMessageAt)}
+              </small>
             </span>
-            <time>{new Date(chat.updatedAt).toLocaleDateString()}</time>
+            <time>Updated {new Date(chat.updatedAt).toLocaleDateString()}</time>
           </button>
         ))}
       </div>
