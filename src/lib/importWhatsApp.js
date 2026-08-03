@@ -2,6 +2,11 @@ import JSZip from 'jszip'
 import { classifyAttachment, inferChatName, parseWhatsAppText } from './whatsappParser.js'
 
 const MAX_IMPORT_SIZE = 300 * 1024 * 1024
+const ZIP_MIME_TYPES = new Set([
+  'application/zip',
+  'application/x-zip-compressed',
+  'multipart/x-zip',
+])
 
 function decodeText(bytes) {
   if (bytes[0] === 0xff && bytes[1] === 0xfe) {
@@ -97,7 +102,10 @@ async function importZipFile(file) {
   return {
     ...transcript.parsed,
     messages,
-    chatName: inferChatName(file.name),
+    chatName:
+      inferChatName(transcript.entry.name) === 'Imported chat'
+        ? inferChatName(file.name)
+        : inferChatName(transcript.entry.name),
     sourceName: file.name,
     attachments: attachments.map((attachment) => ({
       ...attachment,
@@ -106,16 +114,34 @@ async function importZipFile(file) {
   }
 }
 
+async function detectImportType(file) {
+  const extension = file.name.trim().split('.').pop()?.toLowerCase()
+  if (extension === 'txt') return 'txt'
+  if (extension === 'zip' || ZIP_MIME_TYPES.has(file.type.toLowerCase())) return 'zip'
+
+  const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer())
+  const isZip =
+    signature[0] === 0x50 &&
+    signature[1] === 0x4b &&
+    ((signature[2] === 0x03 && signature[3] === 0x04) ||
+      (signature[2] === 0x05 && signature[3] === 0x06) ||
+      (signature[2] === 0x07 && signature[3] === 0x08))
+
+  if (isZip) return 'zip'
+  if (file.type.toLowerCase().startsWith('text/')) return 'txt'
+  return null
+}
+
 export async function importWhatsAppFile(file) {
   if (!(file instanceof File)) throw new TypeError('Choose a WhatsApp .txt or .zip file.')
   if (file.size > MAX_IMPORT_SIZE) {
     throw new Error('This export is larger than 300 MB. Try exporting without videos or other media.')
   }
 
-  const extension = file.name.split('.').pop()?.toLowerCase()
-  if (extension === 'txt') return importTextFile(file)
-  if (extension === 'zip') return importZipFile(file)
-  throw new Error('Unsupported file. Choose a WhatsApp .txt or .zip export.')
+  const importType = await detectImportType(file)
+  if (importType === 'txt') return importTextFile(file)
+  if (importType === 'zip') return importZipFile(file)
+  throw new Error(`“${file.name}” is not a WhatsApp .txt or .zip export.`)
 }
 
 export function releaseImport(importedChat) {

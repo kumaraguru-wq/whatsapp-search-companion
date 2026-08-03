@@ -89,7 +89,7 @@ function ImportPanel({ onImported, importedChat }) {
           ref={inputRef}
           className="visually-hidden"
           type="file"
-          accept=".txt,.zip,text/plain,application/zip"
+          accept=".txt,.zip,text/plain,application/zip,application/x-zip-compressed"
           onChange={(event) => handleFile(event.target.files?.[0])}
         />
       </div>
@@ -219,4 +219,3 @@ function App() {
 }
 
 export default App
-

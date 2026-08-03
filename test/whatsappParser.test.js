@@ -70,3 +70,18 @@ test('opens ZIP exports and matches an extracted file to its message', async () 
     releaseImport(imported)
   }
 })
+
+test('recognizes a mobile ZIP by its signature when the filename has no extension', async () => {
+  const zip = new JSZip()
+  zip.file('WhatsApp Chat with Teachers.txt', '03/08/2026, 9:29 am - Teacher: Hello')
+  const archive = await zip.generateAsync({ type: 'uint8array' })
+  const file = new File([archive], 'shared-export', { type: 'application/octet-stream' })
+
+  const imported = await importWhatsAppFile(file)
+  try {
+    assert.equal(imported.chatName, 'Teachers')
+    assert.equal(imported.messages.length, 1)
+  } finally {
+    releaseImport(imported)
+  }
+})
