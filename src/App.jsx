@@ -293,28 +293,35 @@ function SearchSection({ items, filters, onFiltersChange, onOpenResult, onViewCo
               {results.map((result) => (
                 <article className="search-result-card" key={result.id}>
                   <span className={`result-kind kind-${result.kind}`}>{result.kind}</span>
-                  <button className="result-copy" type="button" onClick={() => onViewContext(result)}>
+                  <button
+                    className="result-copy"
+                    type="button"
+                    aria-label={
+                      result.kind === 'chat' || !result.available
+                        ? `View context for ${result.title}`
+                        : `Open ${result.title}`
+                    }
+                    onClick={() => (
+                      result.kind === 'chat' || !result.available
+                        ? onViewContext(result)
+                        : onOpenResult(result)
+                    )}
+                  >
                     <h3>{result.title}</h3>
                     <p>{result.content || result.title}</p>
                     <small>{result.chatName}{result.sender ? ` · ${result.sender}` : ''}</small>
                   </button>
                   <span className="result-tail">
                     <time>{result.timestamp?.slice(0, 10) ?? result.dateText}</time>
-                    <button
-                      type="button"
-                      disabled={!result.available}
-                      onClick={() => (
-                        result.kind === 'chat' ? onViewContext(result) : onOpenResult(result)
-                      )}
-                    >
-                      {!result.available
-                        ? 'Not included in export'
-                        : result.kind === 'chat'
-                          ? 'View context'
-                          : result.kind === 'link'
-                            ? 'Open link'
-                            : 'Open file'}
-                    </button>
+                    {!result.available ? (
+                      <small className="unavailable-result">Not included in export</small>
+                    ) : result.messageId ? (
+                      <button type="button" onClick={() => onViewContext(result)}>
+                        View context
+                      </button>
+                    ) : (
+                      <small>Tap the name to open</small>
+                    )}
                   </span>
                 </article>
               ))}

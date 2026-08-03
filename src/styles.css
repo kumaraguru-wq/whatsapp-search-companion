@@ -575,6 +575,12 @@ footer {
   cursor: not-allowed;
 }
 
+.result-tail .unavailable-result {
+  color: #a34231;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .day-four-results time {
   white-space: nowrap;
 }
