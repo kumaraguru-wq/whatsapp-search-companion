@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Test WhatsApp parser
+        run: npm test
+
       - name: Build application
         run: npm run build
 

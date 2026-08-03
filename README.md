@@ -4,6 +4,22 @@ ChatFind is an installable, local-only PWA for importing and searching exported
 WhatsApp conversations. Chat data stays in the user's browser and is not sent to
 a server.
 
+## Current capabilities
+
+- Import Android and iPhone WhatsApp `.txt` exports.
+- Open `.zip` exports and match included attachments to their messages.
+- Recognize senders, dates, multiline messages, links and system messages.
+- Preview participants, recent messages and extracted files without uploading them.
+
+Day 2 imports are held in memory for preview. IndexedDB persistence and duplicate
+detection are intentionally reserved for Day 3.
+
+## Import a chat
+
+On WhatsApp, open a chat, choose **Export chat**, then save either the text-only
+export or the ZIP with media. Open ChatFind and select that exported file. A ZIP
+must contain the WhatsApp transcript as a `.txt` file.
+
 ## Local development
 
 Install Node.js 22 LTS, then run:
@@ -34,4 +50,3 @@ After pushing the repository, open **Settings > Pages** and set the source to
 GitHub Pages hosts only the application files. Imported conversations will be
 stored locally in IndexedDB beginning with Day 3 and must never be committed to
 the repository.
-
