@@ -1,5 +1,10 @@
 import JSZip from 'jszip'
-import { classifyAttachment, inferChatName, parseWhatsAppText } from './whatsappParser.js'
+import {
+  classifyAttachment,
+  inferChatName,
+  inferMimeType,
+  parseWhatsAppText,
+} from './whatsappParser.js'
 
 const MAX_IMPORT_SIZE = 300 * 1024 * 1024
 const ZIP_MIME_TYPES = new Set([
@@ -76,7 +81,7 @@ async function importZipFile(file) {
         name,
         path: entry.name,
         size: blob.size,
-        mimeType: blob.type || 'application/octet-stream',
+        mimeType: blob.type || inferMimeType(name),
         category: classifyAttachment(name),
         blob,
         url: URL.createObjectURL(blob),

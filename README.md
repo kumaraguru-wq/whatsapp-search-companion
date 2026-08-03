@@ -13,6 +13,7 @@ a server.
 - Persist chats, messages and attachments in IndexedDB on the current device.
 - Skip duplicate messages and files when the same export is imported again.
 - Search locally with typo-tolerant keywords and sender, chat, date and type filters.
+- Open stored search-result files and distinguish media that WhatsApp omitted from an export.
 
 ChatFind requests persistent browser storage where supported, but encrypted
 downloadable backups are still planned for Day 8.

@@ -1,3 +1,5 @@
+import { classifyAttachment } from './whatsappParser.js'
+
 const QUERY_ALIASES = new Map([
   ['hm', ['headmistress', 'headmaster']],
   ['pdfs', ['pdf']],
@@ -84,7 +86,17 @@ function tokenMatchScore(queryToken, candidateTokens) {
   return best
 }
 
-function makeItem({ id, kind, chat, message, title, content, attachmentId = null, url = null }) {
+function makeItem({
+  id,
+  kind,
+  chat,
+  message,
+  title,
+  content,
+  attachmentId = null,
+  url = null,
+  available = true,
+}) {
   const sender = message?.sender ?? ''
   const searchText = [title, content, sender, chat.name, kind, `${kind}s`].join(' ')
 
@@ -101,6 +113,7 @@ function makeItem({ id, kind, chat, message, title, content, attachmentId = null
     content,
     attachmentId,
     url,
+    available,
     normalizedTitle: normalize(title),
     normalizedSender: normalize(sender),
     normalizedChat: normalize(chat.name),
@@ -161,6 +174,28 @@ export function createSearchItems({ chats, messages, attachments }) {
         }),
       )
     }
+
+    const includedNames = new Set(
+      message.attachmentIds
+        .map((attachmentId) => attachmentsById.get(attachmentId)?.name)
+        .filter(Boolean)
+        .map(normalize),
+    )
+    for (let index = 0; index < (message.attachmentNames ?? []).length; index += 1) {
+      const attachmentName = message.attachmentNames[index]
+      if (includedNames.has(normalize(attachmentName))) continue
+      items.push(
+        makeItem({
+          id: `missing:${message.id}:${index}`,
+          kind: classifyAttachment(attachmentName),
+          chat,
+          message,
+          title: attachmentName,
+          content: message.content,
+          available: false,
+        }),
+      )
+    }
   }
 
   for (const attachment of attachments) {
@@ -203,6 +238,12 @@ function scoreItem(item, normalizedQuery, queryTokens) {
   if (item.normalizedChat === normalizedQuery) score += 90
   else if (item.normalizedChat.includes(normalizedQuery)) score += 58
   if (item.normalizedContent.includes(normalizedQuery)) score += 48
+  if (
+    item.kind !== 'chat' &&
+    queryTokens.some((token) => expandQueryToken(token).includes(item.kind))
+  ) {
+    score += 45
+  }
 
   for (const queryToken of queryTokens) {
     const tokenScore = tokenMatchScore(queryToken, item.tokens)
@@ -250,4 +291,3 @@ export function getSearchOptions(items) {
   )
   return { senders, groups }
 }
-

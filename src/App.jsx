@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { importWhatsAppFile, releaseImport } from './lib/importWhatsApp.js'
 import {
   getStorageEstimate,
+  getStoredAttachment,
   listStoredChats,
   loadSearchCorpus,
   loadStoredChat,
   requestPersistentStorage,
   saveImportedChat,
 } from './lib/localDatabase.js'
+import { inferMimeType } from './lib/whatsappParser.js'
 import {
   createSearchItems,
   getSearchOptions,
@@ -159,7 +161,7 @@ function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
   )
 }
 
-function SearchSection({ items, filters, onFiltersChange }) {
+function SearchSection({ items, filters, onFiltersChange, onOpenResult }) {
   const options = useMemo(() => getSearchOptions(items), [items])
   const hasCriteria = Boolean(
     filters.query.trim() ||
@@ -252,15 +254,32 @@ function SearchSection({ items, filters, onFiltersChange }) {
           ) : (
             <div className="day-four-results">
               {results.map((result) => (
-                <article key={result.id}>
+                <button
+                  className="search-result-card"
+                  key={result.id}
+                  type="button"
+                  onClick={() => onOpenResult(result)}
+                  disabled={!result.available}
+                >
                   <span className={`result-kind kind-${result.kind}`}>{result.kind}</span>
                   <div>
                     <h3>{result.title}</h3>
                     <p>{result.content || result.title}</p>
                     <small>{result.chatName}{result.sender ? ` · ${result.sender}` : ''}</small>
                   </div>
-                  <time>{result.timestamp?.slice(0, 10) ?? result.dateText}</time>
-                </article>
+                  <span className="result-tail">
+                    <time>{result.timestamp?.slice(0, 10) ?? result.dateText}</time>
+                    <small>
+                      {!result.available
+                        ? 'Not included in export'
+                        : result.kind === 'chat'
+                          ? 'View chat'
+                          : result.kind === 'link'
+                            ? 'Open link'
+                            : 'Open file'}
+                    </small>
+                  </span>
+                </button>
               ))}
             </div>
           )}
@@ -414,6 +433,45 @@ function App() {
     }
   }
 
+  async function handleOpenSearchResult(result) {
+    if (!result.available) return
+
+    if (result.kind === 'link' && result.url) {
+      window.open(result.url, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    if (!result.attachmentId) {
+      await handleOpenStoredChat(result.chatId)
+      return
+    }
+
+    const newWindow = window.open('', '_blank')
+    if (newWindow) newWindow.opener = null
+    try {
+      const attachment = await getStoredAttachment(result.attachmentId)
+      const currentType = attachment.blob.type
+      const desiredType = inferMimeType(attachment.name, currentType || 'application/octet-stream')
+      const blob = currentType === desiredType
+        ? attachment.blob
+        : new Blob([attachment.blob], { type: desiredType })
+      const url = URL.createObjectURL(blob)
+
+      if (newWindow) {
+        newWindow.location.href = url
+      } else {
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = attachment.name
+        anchor.click()
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (error) {
+      newWindow?.close()
+      setLibraryError(error instanceof Error ? error.message : 'That file could not be opened.')
+    }
+  }
+
   return (
     <main>
       <nav className="topbar" aria-label="Primary navigation">
@@ -440,7 +498,12 @@ function App() {
         isOpening={isOpening}
       />
       {libraryError && <p className="error-message library-error" role="alert">{libraryError}</p>}
-      <SearchSection items={searchIndex} filters={searchFilters} onFiltersChange={setSearchFilters} />
+      <SearchSection
+        items={searchIndex}
+        filters={searchFilters}
+        onFiltersChange={setSearchFilters}
+        onOpenResult={handleOpenSearchResult}
+      />
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
       {importedChat && <ImportPreview chat={importedChat} importReport={importReport} />}
 

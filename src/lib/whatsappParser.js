@@ -189,3 +189,25 @@ export function classifyAttachment(filename) {
   if (['mp4', 'mov', 'm4v', 'webm', '3gp'].includes(extension)) return 'video'
   return 'other'
 }
+
+export function inferMimeType(filename, fallback = 'application/octet-stream') {
+  const extension = filename.split('.').pop()?.toLowerCase() ?? ''
+  const mimeTypes = {
+    pdf: 'application/pdf',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    txt: 'text/plain',
+    csv: 'text/csv',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  }
+  return mimeTypes[extension] ?? fallback
+}

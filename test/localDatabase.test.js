@@ -5,6 +5,7 @@ import JSZip from 'jszip'
 import { importWhatsAppFile, releaseImport } from '../src/lib/importWhatsApp.js'
 import {
   deleteLocalDatabaseForTests,
+  getStoredAttachment,
   listStoredChats,
   loadStoredChat,
   saveImportedChat,
@@ -52,6 +53,9 @@ test('persists an import and skips the same messages and attachment on re-import
     assert.equal(stored.attachments.length, 1)
     assert.equal(stored.messages[0].attachments[0].name, 'Circular.pdf')
     assert.equal(await stored.attachments[0].blob.text(), '%PDF')
+    const openedAttachment = await getStoredAttachment(stored.attachments[0].id)
+    assert.equal(openedAttachment.name, 'Circular.pdf')
+    assert.equal(openedAttachment.mimeType, 'application/pdf')
   } finally {
     releaseImport(stored)
     await deleteLocalDatabaseForTests()

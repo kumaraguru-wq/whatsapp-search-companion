@@ -18,6 +18,7 @@ const corpus = {
       timeText: '9:00 am',
       links: [],
       attachmentIds: ['a1'],
+      attachmentNames: ['Exam Timetable.pdf'],
     },
     {
       id: 'm2',
@@ -29,6 +30,7 @@ const corpus = {
       timeText: '10:00 am',
       links: ['https://school.example/register'],
       attachmentIds: [],
+      attachmentNames: [],
     },
     {
       id: 'm3',
@@ -40,6 +42,7 @@ const corpus = {
       timeText: '11:00 am',
       links: [],
       attachmentIds: ['a2'],
+      attachmentNames: ['Fee Details.xlsx'],
     },
   ],
   attachments: [
@@ -86,3 +89,26 @@ test('applies sender, group, type and date filters together', () => {
   assert.equal(results[0].title, 'Fee Details.xlsx')
 })
 
+test('shows a referenced attachment as unavailable when it was omitted from the ZIP', () => {
+  const missingItems = createSearchItems({
+    chats: [{ id: 'staff', name: 'School Staff' }],
+    messages: [{
+      id: 'missing-message',
+      chatId: 'staff',
+      sender: 'Headmistress',
+      content: 'Missing Circular.pdf (file attached)',
+      timestamp: '2026-06-10T09:00:00',
+      dateText: '10/06/2026',
+      timeText: '9:00 am',
+      links: [],
+      attachmentIds: [],
+      attachmentNames: ['Missing Circular.pdf'],
+    }],
+    attachments: [],
+  })
+
+  const result = searchItems(missingItems, { query: 'missing pdf' })[0]
+  assert.equal(result.kind, 'pdf')
+  assert.equal(result.available, false)
+  assert.equal(result.attachmentId, null)
+})

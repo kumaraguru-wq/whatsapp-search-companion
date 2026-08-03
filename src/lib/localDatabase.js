@@ -295,6 +295,16 @@ export async function loadSearchCorpus() {
   return { chats, messages, attachments }
 }
 
+export async function getStoredAttachment(attachmentId) {
+  const database = await openDatabase()
+  const transaction = database.transaction('attachments', 'readonly')
+  const completed = transactionToPromise(transaction)
+  const attachment = await requestToPromise(transaction.objectStore('attachments').get(attachmentId))
+  await completed
+  if (!attachment) throw new Error('That file is no longer stored on this device.')
+  return attachment
+}
+
 export async function getStorageEstimate() {
   if (!navigator.storage?.estimate) return null
   const estimate = await navigator.storage.estimate()
