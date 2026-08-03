@@ -2780,6 +2780,84 @@ footer {
   background: rgba(37, 199, 157, 0.08);
 }
 
+.nav-page-link,
+.clear-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 35px;
+  padding: 7px 9px;
+  color: #93aaa2;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-page-link:hover {
+  color: #6ce1c0;
+  background: rgba(37, 199, 157, 0.08);
+}
+
+.clear-icon-button {
+  width: 35px;
+  padding: 0;
+  color: #a98782;
+  border: 1px solid rgba(255, 139, 126, 0.1);
+}
+
+.clear-icon-button:hover {
+  color: #ffaaa0;
+  background: rgba(181, 58, 44, 0.12);
+  border-color: rgba(255, 139, 126, 0.18);
+}
+
+.nav-page-link svg,
+.clear-icon-button svg {
+  width: 17px;
+  fill: currentColor;
+}
+
+:root[data-theme="light"] .nav-page-link,
+:root[data-theme="light"] .clear-icon-button {
+  color: #526b65;
+}
+
+:root[data-theme="light"] .clear-icon-button:hover {
+  color: #963c31;
+  background: rgba(181, 58, 44, 0.07);
+}
+
+@media (max-width: 720px) {
+  .backup-link {
+    width: 35px;
+    padding: 0;
+  }
+
+  .backup-link span {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .help-link {
+    width: 35px;
+    overflow: hidden;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .help-link::before {
+    content: "?";
+    font-size: 0.82rem;
+  }
+}
+
 .teacher-guide {
   margin-top: 72px;
   padding: 64px;

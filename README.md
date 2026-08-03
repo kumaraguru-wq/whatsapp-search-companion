@@ -8,6 +8,8 @@ browser; GitHub Pages hosts only the application code.
 
 **Teacher instructions:** [TEACHER_GUIDE.md](./TEACHER_GUIDE.md)
 
+**Backup & restore:** https://kumaraguru-wq.github.io/whatsapp-search-companion/backup.html
+
 ## Version 1.0 features
 
 - Import Android and iPhone WhatsApp TXT or ZIP exports.

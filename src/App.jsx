@@ -86,6 +86,22 @@ function ThemeIcon({ theme }) {
   )
 }
 
+function BackupIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3h10l3 3v15H5V3h1Zm1 2v14h10V7.2L14.8 5H7Zm2 0v5h6V5h-2v3h-2V5H9Zm-1 8h8v4H8v-4Z" />
+    </svg>
+  )
+}
+
+function ClearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-.7 12H7.7L7 9Zm2.1 2 .5 8h4.8l.5-8H9.1Z" />
+    </svg>
+  )
+}
+
 function isIosDevice() {
   return /iphone|ipad|ipod/iu.test(navigator.userAgent) || (
     navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
@@ -1113,6 +1129,18 @@ function App() {
     })
   }, [refreshLibrary])
 
+  useEffect(() => {
+    if (!('BroadcastChannel' in window)) return undefined
+    const channel = new BroadcastChannel('chatfind-library')
+    channel.addEventListener('message', (event) => {
+      if (event.data?.type !== 'library-changed') return
+      refreshLibrary().catch((error) => {
+        setLibraryError(error instanceof Error ? error.message : 'Restored chats could not be refreshed.')
+      })
+    })
+    return () => channel.close()
+  }, [refreshLibrary])
+
   async function handleImported(nextChat) {
     const report = await saveImportedChat(nextChat)
     await requestPersistentStorage().catch(() => false)
@@ -1246,7 +1274,19 @@ function App() {
           <span>ChatFind</span>
         </a>
         <div className="nav-actions">
+          <a className="nav-page-link backup-link" href="./backup.html" target="_blank" rel="noreferrer">
+            <BackupIcon /><span>Backup</span>
+          </a>
           <a className="help-link" href="./help.html" target="_blank" rel="noreferrer">Help</a>
+          <button
+            className="clear-icon-button"
+            type="button"
+            aria-label="Clear all local chat history"
+            title="Clear all local chat history"
+            onClick={handleClearLocalHistory}
+          >
+            <ClearIcon />
+          </button>
           <button
             className="theme-toggle"
             type="button"
@@ -1286,7 +1326,6 @@ function App() {
         onViewContext={handleViewContext}
         onToggleBookmark={handleToggleBookmark}
       />
-      <BackupRestoreSection onRestored={refreshLibrary} onClear={handleClearLocalHistory} />
       <PeopleGroupsDirectory
         directory={profileDirectory}
         onOpenPerson={handleOpenPerson}

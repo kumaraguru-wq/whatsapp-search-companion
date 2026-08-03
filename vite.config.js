@@ -6,5 +6,12 @@ export default defineConfig({
   // repository path such as /whatsapp-search-companion/.
   base: './',
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        backup: 'backup.html',
+      },
+    },
+  },
 })
-

@@ -40,10 +40,11 @@ duplicates automatically.
 
 ## 4. Protect or move your library
 
-1. Under **Encrypted backup & restore**, enter a password of at least eight characters.
-2. Confirm it and press **Download encrypted backup**.
-3. Keep the downloaded `.chatfind-backup` file and password separately.
-4. On another device, select that file, enter the same password, and press
+1. Press **Backup** at the top of ChatFind to open the separate Backup & Restore page.
+2. Enter a password of at least eight characters.
+3. Confirm it and press **Download encrypted backup**.
+4. Keep the downloaded `.chatfind-backup` file and password separately.
+5. On another device, select that file, enter the same password, and press
    **Restore encrypted backup**.
 
 The password alone is not enough; restoring requires both the backup file and
@@ -55,8 +56,8 @@ the exact password. ChatFind cannot recover a forgotten password.
   Download it inside WhatsApp, export again with media, and re-import.
 - **An older screen appears:** refresh the page once or close and reopen the installed app.
 - **Chats disappeared after clearing browser data:** restore the latest encrypted backup.
-- **Clear this browser's library:** under **Encrypted backup & restore**, press
-  **Clear all local data** and confirm. This deletes local chats, included files
+- **Clear this browser's library:** press the clear/trash icon in ChatFind's top
+  bar and confirm. This deletes local chats, included files
   and stars but does not affect WhatsApp or another device.
 - **Privacy:** imported chats remain in that browser's local storage and are not
   visible to other users through the GitHub Pages link.

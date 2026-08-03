@@ -1,0 +1,42 @@
+:root {
+  color: #dceae5;
+  background: #07110f;
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 12% 4%, rgba(38,195,154,.14), transparent 31rem), radial-gradient(circle at 88% 20%, rgba(90,105,230,.1), transparent 28rem), #07110f; }
+main { width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+nav { display: flex; align-items: center; justify-content: space-between; min-height: 82px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: inherit; font-weight: 850; text-decoration: none; }
+.brand span { display: grid; width: 33px; height: 33px; place-items: center; color: #07110f; background: #58dfbb; border-radius: 11px; font-family: Georgia, serif; }
+.back-link { padding: 9px 12px; color: #69dfbf; background: rgba(37,199,157,.09); border: 1px solid rgba(89,223,187,.15); border-radius: 10px; font-size: .75rem; font-weight: 800; text-decoration: none; }
+header { padding: clamp(58px, 10vw, 100px) 0 55px; }
+.kicker, .number { color: #63dfbd; font-size: .7rem; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; }
+h1 { margin: 14px 0 0; color: #f3faf7; font: 500 clamp(3rem, 8vw, 5.6rem)/.96 Georgia, "Times New Roman", serif; letter-spacing: -.055em; }
+header p { max-width: 610px; margin: 24px 0 0; color: #8fa49d; font-size: 1rem; line-height: 1.6; }
+.backup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.backup-card { display: grid; align-content: start; gap: 16px; min-width: 0; padding: 25px; background: rgba(12,25,22,.9); border: 1px solid rgba(167,218,202,.13); border-radius: 20px; box-shadow: 0 20px 55px rgba(0,0,0,.2); }
+.number { display: grid; width: 36px; height: 28px; place-items: center; background: rgba(37,199,157,.1); border-radius: 8px; }
+h2 { margin: 0 0 7px; color: #eff8f5; font-size: 1.05rem; }
+.backup-card > div p { margin: 0; color: #82978f; font-size: .76rem; line-height: 1.5; }
+label { display: grid; gap: 7px; }
+label > span { color: #839890; font-size: .65rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+input { width: 100%; min-width: 0; padding: 12px 13px; color: #e7f2ee; background: #091512; border: 1px solid rgba(167,218,202,.14); border-radius: 10px; outline: 0; font: inherit; }
+input:focus { border-color: rgba(89,223,187,.48); box-shadow: 0 0 0 3px rgba(37,199,157,.08); }
+input::file-selector-button { margin-right: 10px; padding: 7px 9px; color: #8fe8cf; background: rgba(37,199,157,.1); border: 0; border-radius: 7px; font: inherit; font-size: .72rem; font-weight: 750; cursor: pointer; }
+.backup-card > button { min-height: 45px; padding: 12px 16px; color: #06120f; background: linear-gradient(135deg,#58dfbb,#27b38f); border: 0; border-radius: 11px; font-weight: 850; cursor: pointer; }
+.backup-card > button:disabled { cursor: wait; opacity: .62; }
+.success, .error { margin: 0; padding: 11px 13px; border-radius: 9px; font-size: .72rem; font-weight: 750; line-height: 1.45; }
+.success { color: #7ce5c8; background: rgba(37,199,157,.09); }
+.error { margin-top: 14px; color: #ffaaa0; background: rgba(181,58,44,.18); }
+aside { margin-top: 16px; padding: 15px 17px; color: #8b9f98; background: rgba(255,255,255,.025); border-radius: 11px; font-size: .73rem; line-height: 1.5; text-align: center; }
+aside strong { color: #efc36c; }
+footer { padding: 42px 0 48px; color: #71867e; font-size: .7rem; text-align: center; text-transform: uppercase; letter-spacing: .06em; }
+:root[data-theme="light"] { color: #16322e; background: #f4f1e8; color-scheme: light; }
+:root[data-theme="light"] body { background: radial-gradient(circle at 8% 8%, rgba(231,185,111,.2), transparent 31rem), #f4f1e8; }
+:root[data-theme="light"] h1, :root[data-theme="light"] h2 { color: #102925; }
+:root[data-theme="light"] header p, :root[data-theme="light"] .backup-card > div p, :root[data-theme="light"] aside, :root[data-theme="light"] footer { color: #637772; }
+:root[data-theme="light"] .backup-card { background: rgba(255,255,255,.65); border-color: rgba(16,41,37,.12); box-shadow: 0 18px 50px rgba(54,67,62,.08); }
+:root[data-theme="light"] input { color: #17332e; background: rgba(255,255,255,.8); border-color: rgba(16,41,37,.14); }
+@media (max-width: 720px) { main { width: min(100% - 28px, 980px); } .backup-grid { grid-template-columns: 1fr; } .backup-card { padding: 21px; } }
