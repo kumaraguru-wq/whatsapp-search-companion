@@ -17,6 +17,7 @@ a server.
 - Browse local person and group profiles with separate message, file, and link views.
 - Star individual messages, files, images, and links for persistent local Quick Access.
 - Download and restore a password-encrypted local backup containing chats, files, and stars.
+- Switch between remembered light/dark themes and install ChatFind from Android, iPhone, or desktop browsers.
 - Open stored search-result files and distinguish media that WhatsApp omitted from an export.
 - Browse category tabs and open the original message with nearby conversation context.
 - Open available file and link results by selecting their title; context remains a separate action.

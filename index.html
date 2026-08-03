@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07110f" />
+    <script>
+      try {
+        const savedTheme = localStorage.getItem('chatfind-theme')
+        const theme = savedTheme === 'light' || savedTheme === 'dark'
+          ? savedTheme
+          : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        document.documentElement.dataset.theme = theme
+        document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#f4f1e8' : '#07110f'
+      } catch {}
+    </script>
     <meta
       name="description"
       content="Private, local search for exported WhatsApp conversations."

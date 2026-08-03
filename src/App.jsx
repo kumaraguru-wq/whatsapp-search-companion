@@ -73,6 +73,85 @@ function StarIcon({ filled = false }) {
   )
 }
 
+function ThemeIcon({ theme }) {
+  return theme === 'dark' ? (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.5a7 7 0 0 1-7.4-7.4C13 3 12.5 3 12 3Z" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5h1v3h-2V2h1Zm0 17h1v3h-2v-3h1ZM2 11h3v2H2v-2Zm17 0h3v2h-3v-2ZM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1Zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1Zm2.1-13.5 1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1ZM6.3 16.3l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1Z" />
+    </svg>
+  )
+}
+
+function isIosDevice() {
+  return /iphone|ipad|ipod/iu.test(navigator.userAgent) || (
+    navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  )
+}
+
+function InstallPrompt() {
+  const [installEvent, setInstallEvent] = useState(null)
+  const [isInstalled, setIsInstalled] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(false)
+  const [showIosSteps, setShowIosSteps] = useState(false)
+  const isIos = typeof navigator !== 'undefined' && isIosDevice()
+
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
+    setIsInstalled(standalone)
+
+    function handleInstallAvailable(event) {
+      event.preventDefault()
+      setInstallEvent(event)
+    }
+    function handleInstalled() {
+      setIsInstalled(true)
+      setInstallEvent(null)
+    }
+    window.addEventListener('beforeinstallprompt', handleInstallAvailable)
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleInstallAvailable)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
+  }, [])
+
+  if (isInstalled || isDismissed || (!installEvent && !isIos)) return null
+
+  async function handleInstall() {
+    if (isIos) {
+      setShowIosSteps(true)
+      return
+    }
+    if (!installEvent) return
+    await installEvent.prompt()
+    const choice = await installEvent.userChoice
+    if (choice.outcome === 'accepted') setIsInstalled(true)
+    setInstallEvent(null)
+  }
+
+  return (
+    <aside className="install-banner" aria-label="Install ChatFind">
+      <span className="install-icon" aria-hidden="true"><ShieldIcon /></span>
+      <div>
+        <strong>Install ChatFind on this device</strong>
+        <p>{isIos ? 'Add it to your iPhone Home Screen for quick offline access.' : 'Use it like an app and open saved chats offline.'}</p>
+        {showIosSteps && (
+          <p className="ios-install-steps">
+            In Safari, tap the Share button, then choose <strong>Add to Home Screen</strong>.
+          </p>
+        )}
+      </div>
+      <button className="install-action" type="button" onClick={handleInstall}>
+        {isIos ? 'Show steps' : 'Install app'}
+      </button>
+      <button className="install-dismiss" type="button" aria-label="Dismiss install suggestion" onClick={() => setIsDismissed(true)}>×</button>
+    </aside>
+  )
+}
+
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB']
@@ -949,6 +1028,15 @@ function ImportPreview({ chat, importReport }) {
 }
 
 function App() {
+  const [theme, setTheme] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('chatfind-theme')
+      if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme
+    } catch {
+      // Continue with the device preference when local storage is unavailable.
+    }
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  })
   const [importedChat, setImportedChat] = useState(null)
   const [importReport, setImportReport] = useState(null)
   const [storedChats, setStoredChats] = useState([])
@@ -969,6 +1057,18 @@ function App() {
 
   useEffect(() => () => releaseImport(importedChat), [importedChat])
   useEffect(() => () => releaseImport(messageContext), [messageContext])
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      'content',
+      theme === 'light' ? '#f4f1e8' : '#07110f',
+    )
+    try {
+      localStorage.setItem('chatfind-theme', theme)
+    } catch {
+      // The selected theme still works for this session.
+    }
+  }, [theme])
 
   const refreshLibrary = useCallback(async () => {
     const [chats, estimate, corpus, savedState] = await Promise.all([
@@ -1104,7 +1204,18 @@ function App() {
           <span className="brand-mark"><ShieldIcon /></span>
           <span>ChatFind</span>
         </a>
-        <span className="privacy-pill">Local only</span>
+        <div className="nav-actions">
+          <button
+            className="theme-toggle"
+            type="button"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
+          >
+            <ThemeIcon theme={theme} />
+            <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
+          </button>
+          <span className="privacy-pill">Local only</span>
+        </div>
       </nav>
 
       <section className="hero compact-hero">
@@ -1115,6 +1226,8 @@ function App() {
           people, links and attached files directly on your device.
         </p>
       </section>
+
+      <InstallPrompt />
 
       <SavedChats
         chats={storedChats}
@@ -1180,7 +1293,7 @@ function App() {
       )}
 
       <footer>
-        <span>Day 8 encrypted backup</span>
+        <span>Day 9 install &amp; themes</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>
