@@ -53,7 +53,7 @@ async function selectTranscript(textEntries) {
 }
 
 async function importZipFile(file) {
-  const zip = await JSZip.loadAsync(file)
+  const zip = await JSZip.loadAsync(await file.arrayBuffer())
   const entries = Object.values(zip.files).filter(
     (entry) => !entry.dir && !entry.name.startsWith('__MACOSX/'),
   )
@@ -121,4 +121,3 @@ export async function importWhatsAppFile(file) {
 export function releaseImport(importedChat) {
   for (const attachment of importedChat?.attachments ?? []) URL.revokeObjectURL(attachment.url)
 }
-

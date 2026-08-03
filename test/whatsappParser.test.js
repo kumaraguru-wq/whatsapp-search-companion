@@ -1,5 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import JSZip from 'jszip'
+import { importWhatsAppFile, releaseImport } from '../src/lib/importWhatsApp.js'
 import {
   classifyAttachment,
   inferChatName,
@@ -47,3 +49,24 @@ test('classifies attachments and cleans chat names', () => {
   assert.equal(inferChatName('_chat.txt'), 'Imported chat')
 })
 
+test('opens ZIP exports and matches an extracted file to its message', async () => {
+  const zip = new JSZip()
+  zip.file('_chat.txt', '31/07/2026, 9:05 pm - Headmistress: Circular.pdf (file attached)')
+  zip.file('Circular.pdf', new Uint8Array([0x25, 0x50, 0x44, 0x46]))
+  const archive = await zip.generateAsync({ type: 'uint8array' })
+  const file = new File([archive], 'WhatsApp Chat with School Staff.zip', {
+    type: 'application/zip',
+  })
+
+  const imported = await importWhatsAppFile(file)
+  try {
+    assert.equal(imported.chatName, 'School Staff')
+    assert.equal(imported.messages.length, 1)
+    assert.equal(imported.attachments.length, 1)
+    assert.equal(imported.attachments[0].category, 'pdf')
+    assert.equal(imported.attachments[0].matched, true)
+    assert.equal(imported.messages[0].attachments[0].name, 'Circular.pdf')
+  } finally {
+    releaseImport(imported)
+  }
+})
