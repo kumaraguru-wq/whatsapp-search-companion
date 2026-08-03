@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import JSZip from 'jszip'
 import { importWhatsAppFile, releaseImport } from '../src/lib/importWhatsApp.js'
 import {
+  clearLocalLibrary,
   deleteLocalDatabaseForTests,
   exportLocalSnapshot,
   getStoredAttachment,
@@ -15,6 +16,25 @@ import {
   saveImportedChat,
   toggleBookmarkedItem,
 } from '../src/lib/localDatabase.js'
+
+test('clears all local chat history, files and stars', async () => {
+  await deleteLocalDatabaseForTests()
+  await restoreLocalSnapshot({
+    chats: [{ id: 'clear-chat', name: 'Clear Me', updatedAt: '2026-08-03T10:00:00.000Z' }],
+    messages: [{ id: 'clear-message', chatId: 'clear-chat' }],
+    attachments: [{
+      id: 'clear-file',
+      chatId: 'clear-chat',
+      blob: new Blob(['file']),
+    }],
+    bookmarks: [{ id: 'chat:clear-message' }],
+  })
+
+  await clearLocalLibrary()
+  const snapshot = await exportLocalSnapshot()
+  assert.deepEqual(snapshot, { chats: [], messages: [], attachments: [], bookmarks: [] })
+  await deleteLocalDatabaseForTests()
+})
 
 test('exports and safely restores a complete local snapshot', async () => {
   await deleteLocalDatabaseForTests()

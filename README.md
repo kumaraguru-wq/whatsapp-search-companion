@@ -21,6 +21,7 @@ browser; GitHub Pages hosts only the application code.
 - Download and restore password-encrypted backups containing chats, files and stars.
 - Switch between remembered light and dark themes.
 - Install as an offline-ready PWA on supported phones and computers.
+- Open the teacher instructions on a separate Help page and clear all local history when required.
 
 ## Privacy and storage
 

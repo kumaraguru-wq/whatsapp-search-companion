@@ -521,6 +521,20 @@ export async function restoreLocalSnapshot(snapshot) {
   }
 }
 
+export async function clearLocalLibrary() {
+  const database = await openDatabase()
+  const transaction = database.transaction(
+    ['chats', 'messages', 'attachments', 'bookmarks'],
+    'readwrite',
+  )
+  const completed = transactionToPromise(transaction)
+  transaction.objectStore('chats').clear()
+  transaction.objectStore('messages').clear()
+  transaction.objectStore('attachments').clear()
+  transaction.objectStore('bookmarks').clear()
+  await completed
+}
+
 export async function deleteLocalDatabaseForTests() {
   if (databasePromise) {
     const database = await databasePromise

@@ -1717,6 +1717,69 @@ footer {
   text-align: center;
 }
 
+.clear-history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 16px;
+  padding: 18px 20px;
+  background: rgba(146, 48, 39, 0.09);
+  border: 1px solid rgba(255, 139, 126, 0.16);
+  border-radius: 14px;
+}
+
+.clear-history-card strong {
+  color: #ffb0a7;
+  font-size: 0.82rem;
+}
+
+.clear-history-card p {
+  margin: 5px 0 0;
+  color: #9e8580;
+  font-size: 0.71rem;
+  line-height: 1.45;
+}
+
+.clear-history-card button {
+  flex: 0 0 auto;
+  padding: 10px 13px;
+  color: #ffb0a7;
+  background: rgba(181, 58, 44, 0.13);
+  border: 1px solid rgba(255, 139, 126, 0.2);
+  border-radius: 9px;
+  font-size: 0.7rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.clear-history-card button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+:root[data-theme="light"] .clear-history-card {
+  background: rgba(181, 58, 44, 0.055);
+  border-color: rgba(166, 56, 43, 0.14);
+}
+
+:root[data-theme="light"] .clear-history-card strong,
+:root[data-theme="light"] .clear-history-card button {
+  color: #963c31;
+}
+
+:root[data-theme="light"] .clear-history-card p {
+  color: #826d68;
+}
+
+@media (max-width: 720px) {
+  .clear-history-card {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 13px;
+  }
+}
+
 @media (max-width: 720px) {
   .backup-section {
     padding-bottom: 58px;

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'chatfind-shell-v14'
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg']
+const CACHE_NAME = 'chatfind-shell-v15'
+const APP_SHELL = ['./', './index.html', './help.html', './help.css', './manifest.webmanifest', './icon.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))

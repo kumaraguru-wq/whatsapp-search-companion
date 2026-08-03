@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07110f" />
+    <meta name="description" content="ChatFind teacher help and privacy guide." />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./help.css" />
+    <title>ChatFind Help</title>
+    <script>
+      try {
+        const savedTheme = localStorage.getItem('chatfind-theme')
+        const theme = savedTheme === 'light' || savedTheme === 'dark'
+          ? savedTheme
+          : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        document.documentElement.dataset.theme = theme
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <main>
+      <nav>
+        <a class="brand" href="./"><span>C</span>ChatFind</a>
+        <a class="back-link" href="./">← Back to app</a>
+      </nav>
+
+      <header>
+        <span class="kicker">Teacher help</span>
+        <h1>Export, import, find.</h1>
+        <p>Everything needed to use ChatFind privately on a phone or computer.</p>
+      </header>
+
+      <section class="steps-grid">
+        <article>
+          <span class="platform">Android</span>
+          <h2>Export from WhatsApp</h2>
+          <ol>
+            <li>Open the required private chat or group.</li>
+            <li>Tap <strong>⋮ → More → Export chat</strong>.</li>
+            <li>Choose <strong>Include media</strong> when PDFs, photos or documents are needed.</li>
+            <li>Save or share the resulting ZIP file.</li>
+          </ol>
+        </article>
+
+        <article>
+          <span class="platform">iPhone</span>
+          <h2>Export from WhatsApp</h2>
+          <ol>
+            <li>Open the required private chat or group.</li>
+            <li>Tap the chat or group name at the top.</li>
+            <li>Choose <strong>Export Chat → Attach Media</strong>.</li>
+            <li>Choose <strong>Save to Files</strong> and keep the ZIP file.</li>
+          </ol>
+        </article>
+
+        <article>
+          <span class="platform">ChatFind</span>
+          <h2>Import and search</h2>
+          <ol>
+            <li>Return to ChatFind and press <strong>Choose export</strong>.</li>
+            <li>Select the WhatsApp ZIP or TXT file.</li>
+            <li>Search by person, group, date, keyword or file type.</li>
+            <li>Tap a filename to open it or choose <strong>View context</strong>.</li>
+          </ol>
+        </article>
+      </section>
+
+      <section class="help-section">
+        <span class="kicker">Storage and safety</span>
+        <h2>Backup, move or clear your library</h2>
+        <div class="info-grid">
+          <article>
+            <h3>Move to another device</h3>
+            <p>Download an encrypted backup. Transfer the `.chatfind-backup` file to the new device and restore it using the exact same password.</p>
+          </article>
+          <article>
+            <h3>Clear chat history</h3>
+            <p>In ChatFind, open <strong>Encrypted backup &amp; restore</strong>, then press <strong>Clear all local data</strong> and confirm. This removes chats, files and stars from that browser only.</p>
+          </article>
+          <article>
+            <h3>Missing PDF or image</h3>
+            <p>Download the file inside WhatsApp first. Export the chat again with media and re-import it; duplicates are skipped automatically.</p>
+          </article>
+          <article>
+            <h3>Privacy</h3>
+            <p>Imported data remains in the current browser. Sharing the ChatFind link does not share anyone's chat history.</p>
+          </article>
+        </div>
+      </section>
+
+      <footer>ChatFind v1.0 · Local-only WhatsApp export search</footer>
+    </main>
+  </body>
+</html>

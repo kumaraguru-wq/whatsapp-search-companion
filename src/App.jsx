@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { importWhatsAppFile, releaseImport } from './lib/importWhatsApp.js'
 import {
+  clearLocalLibrary,
   getStorageEstimate,
   getStoredAttachment,
   getSavedState,
@@ -327,13 +328,14 @@ function QuickAccess({ chats, items, bookmarkedItemIds, onOpenResult, onViewCont
   )
 }
 
-function BackupRestoreSection({ onRestored }) {
+function BackupRestoreSection({ onRestored, onClear }) {
   const [backupPassword, setBackupPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [restorePassword, setRestorePassword] = useState('')
   const [restoreFile, setRestoreFile] = useState(null)
   const [isBackingUp, setIsBackingUp] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
   const [backupStatus, setBackupStatus] = useState('')
   const [restoreStatus, setRestoreStatus] = useState('')
   const [error, setError] = useState('')
@@ -392,6 +394,18 @@ function BackupRestoreSection({ onRestored }) {
       setError(restoreError instanceof Error ? restoreError.message : 'The backup could not be restored.')
     } finally {
       setIsRestoring(false)
+    }
+  }
+
+  async function handleClear() {
+    setError('')
+    setIsClearing(true)
+    try {
+      await onClear()
+    } catch (clearError) {
+      setError(clearError instanceof Error ? clearError.message : 'Local chat history could not be cleared.')
+    } finally {
+      setIsClearing(false)
     }
   }
 
@@ -474,6 +488,16 @@ function BackupRestoreSection({ onRestored }) {
           </button>
           {restoreStatus && <p className="backup-success" role="status">{restoreStatus}</p>}
         </form>
+      </div>
+
+      <div className="clear-history-card">
+        <div>
+          <strong>Clear local chat history</strong>
+          <p>Deletes all imported chats, included files and stars from this browser only.</p>
+        </div>
+        <button type="button" onClick={handleClear} disabled={isClearing}>
+          {isClearing ? 'Clearing…' : 'Clear all local data'}
+        </button>
       </div>
 
       {error && <p className="error-message backup-error" role="alert">{error}</p>}
@@ -1027,61 +1051,6 @@ function ImportPreview({ chat, importReport }) {
   )
 }
 
-function TeacherGuide() {
-  return (
-    <section className="teacher-guide" id="teacher-guide" aria-labelledby="teacher-guide-heading">
-      <div className="section-heading">
-        <div>
-          <span className="section-kicker">Teacher handover guide</span>
-          <h2 id="teacher-guide-heading">Export, import, find.</h2>
-        </div>
-        <p>Three steps. No account required.</p>
-      </div>
-
-      <div className="guide-grid">
-        <article>
-          <span className="guide-platform">Android</span>
-          <h3>Export from WhatsApp</h3>
-          <ol>
-            <li>Open the private chat or group.</li>
-            <li>Tap <strong>⋮ → More → Export chat</strong>.</li>
-            <li>Choose <strong>Include media</strong> when PDFs, photos and documents are needed.</li>
-            <li>Save or share the resulting ZIP file.</li>
-          </ol>
-        </article>
-
-        <article>
-          <span className="guide-platform">iPhone</span>
-          <h3>Export from WhatsApp</h3>
-          <ol>
-            <li>Open the private chat or group.</li>
-            <li>Tap the chat or group name at the top.</li>
-            <li>Choose <strong>Export Chat → Attach Media</strong>.</li>
-            <li>Select <strong>Save to Files</strong> and keep the ZIP file.</li>
-          </ol>
-        </article>
-
-        <article>
-          <span className="guide-platform">ChatFind</span>
-          <h3>Import and search</h3>
-          <ol>
-            <li>Open ChatFind and press <strong>Choose export</strong>.</li>
-            <li>Select the WhatsApp ZIP or TXT file.</li>
-            <li>Search by person, group, date, keyword or file type.</li>
-            <li>Star important results and download an encrypted backup.</li>
-          </ol>
-        </article>
-      </div>
-
-      <div className="guide-handover-notes">
-        <p><strong>Privacy:</strong> Chats remain inside this browser. GitHub Pages receives none of the imported data.</p>
-        <p><strong>Missing files:</strong> Download the file in WhatsApp first, then export again with media and re-import.</p>
-        <p><strong>New device:</strong> Transfer the `.chatfind-backup` file and restore it with the same password.</p>
-      </div>
-    </section>
-  )
-}
-
 function App() {
   const [theme, setTheme] = useState(() => {
     try {
@@ -1252,6 +1221,23 @@ function App() {
     }
   }
 
+  async function handleClearLocalHistory() {
+    const confirmed = window.confirm(
+      'Delete every imported chat, included file and starred item from this browser? Download an encrypted backup first if you may need this data later.',
+    )
+    if (!confirmed) return
+    await clearLocalLibrary()
+    releaseImport(importedChat)
+    releaseImport(messageContext)
+    setImportedChat(null)
+    setImportReport(null)
+    setMessageContext(null)
+    setProfileSelection(null)
+    setSearchFilters({ ...EMPTY_SEARCH_FILTERS })
+    setLibraryError('')
+    await refreshLibrary()
+  }
+
   return (
     <main>
       <nav className="topbar" aria-label="Primary navigation">
@@ -1260,7 +1246,7 @@ function App() {
           <span>ChatFind</span>
         </a>
         <div className="nav-actions">
-          <a className="help-link" href="#teacher-guide">Help</a>
+          <a className="help-link" href="./help.html" target="_blank" rel="noreferrer">Help</a>
           <button
             className="theme-toggle"
             type="button"
@@ -1300,7 +1286,7 @@ function App() {
         onViewContext={handleViewContext}
         onToggleBookmark={handleToggleBookmark}
       />
-      <BackupRestoreSection onRestored={refreshLibrary} />
+      <BackupRestoreSection onRestored={refreshLibrary} onClear={handleClearLocalHistory} />
       <PeopleGroupsDirectory
         directory={profileDirectory}
         onOpenPerson={handleOpenPerson}
@@ -1320,7 +1306,6 @@ function App() {
       {isContextLoading && <p className="context-loading" role="status">Opening message context…</p>}
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
       {importedChat && <ImportPreview chat={importedChat} importReport={importReport} />}
-      <TeacherGuide />
 
       {messageContext && (
         <MessageContextViewer
