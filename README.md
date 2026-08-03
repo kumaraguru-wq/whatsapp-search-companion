@@ -15,6 +15,7 @@ a server.
 - Search locally with typo-tolerant keywords and sender, chat, date and type filters.
 - See the latest message date covered by every saved chat export in the local library.
 - Browse local person and group profiles with separate message, file, and link views.
+- Pin important conversations and star individual results for persistent local Quick Access.
 - Open stored search-result files and distinguish media that WhatsApp omitted from an export.
 - Browse category tabs and open the original message with nearby conversation context.
 - Open available file and link results by selecting their title; context remains a separate action.

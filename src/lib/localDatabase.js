@@ -1,5 +1,5 @@
 const DATABASE_NAME = 'chatfind-local'
-const DATABASE_VERSION = 1
+const DATABASE_VERSION = 2
 
 let databasePromise
 
@@ -39,6 +39,14 @@ function openDatabase() {
       if (!database.objectStoreNames.contains('attachments')) {
         const attachments = database.createObjectStore('attachments', { keyPath: 'id' })
         attachments.createIndex('by_chat', 'chatId', { unique: false })
+      }
+
+      if (!database.objectStoreNames.contains('bookmarks')) {
+        database.createObjectStore('bookmarks', { keyPath: 'id' })
+      }
+
+      if (!database.objectStoreNames.contains('pinnedChats')) {
+        database.createObjectStore('pinnedChats', { keyPath: 'id' })
       }
     })
 
@@ -412,6 +420,43 @@ export async function getStorageEstimate() {
 export async function requestPersistentStorage() {
   if (!navigator.storage?.persist) return false
   return navigator.storage.persist()
+}
+
+export async function getSavedState() {
+  const database = await openDatabase()
+  const transaction = database.transaction(['bookmarks', 'pinnedChats'], 'readonly')
+  const completed = transactionToPromise(transaction)
+  const bookmarkRequest = requestToPromise(transaction.objectStore('bookmarks').getAllKeys())
+  const pinRequest = requestToPromise(transaction.objectStore('pinnedChats').getAllKeys())
+  const [bookmarkedItemIds, pinnedChatIds] = await Promise.all([bookmarkRequest, pinRequest])
+  await completed
+  return { bookmarkedItemIds, pinnedChatIds }
+}
+
+async function toggleSavedRecord(storeName, id) {
+  if (!id) throw new Error('That saved item does not have a valid identifier.')
+  const database = await openDatabase()
+  const transaction = database.transaction(storeName, 'readwrite')
+  const completed = transactionToPromise(transaction)
+  const store = transaction.objectStore(storeName)
+  const existingKey = await requestToPromise(store.getKey(id))
+  const isSaved = existingKey === undefined
+
+  if (isSaved) {
+    store.add({ id, createdAt: new Date().toISOString() })
+  } else {
+    store.delete(id)
+  }
+  await completed
+  return isSaved
+}
+
+export function toggleBookmarkedItem(itemId) {
+  return toggleSavedRecord('bookmarks', itemId)
+}
+
+export function togglePinnedChat(chatId) {
+  return toggleSavedRecord('pinnedChats', chatId)
 }
 
 export async function deleteLocalDatabaseForTests() {

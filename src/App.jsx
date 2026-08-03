@@ -3,12 +3,15 @@ import { importWhatsAppFile, releaseImport } from './lib/importWhatsApp.js'
 import {
   getStorageEstimate,
   getStoredAttachment,
+  getSavedState,
   listStoredChats,
   loadMessageContext,
   loadSearchCorpus,
   loadStoredChat,
   requestPersistentStorage,
   saveImportedChat,
+  toggleBookmarkedItem,
+  togglePinnedChat,
 } from './lib/localDatabase.js'
 import { inferMimeType } from './lib/whatsappParser.js'
 import {
@@ -54,6 +57,26 @@ function UploadIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M11 16V7.8L8.4 10.4 7 9l5-5 5 5-1.4 1.4L13 7.8V16h-2Zm-5 4a2 2 0 0 1-2-2v-3h2v3h12v-3h2v3a2 2 0 0 1-2 2H6Z" />
+    </svg>
+  )
+}
+
+function StarIcon({ filled = false }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d={filled
+        ? 'm12 2.8 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3-4.6-4.5 6.3-.9L12 2.8Z'
+        : 'm12 5.5 1.9 3.9.3.6.7.1 4.3.6-3.1 3-.5.5.1.7.8 4.2-3.8-2-.6-.3-.6.3-3.8 2 .8-4.2.1-.7-.5-.5-3.1-3 4.3-.6.7-.1.3-.6L12 5.5Zm0-3.2 3.5 7.1 7.8 1.1-5.7 5.5 1.3 7.7-6.9-3.6-6.9 3.6L6.4 16 .7 10.5l7.8-1.1L12 2.3Z'} />
+    </svg>
+  )
+}
+
+function PinIcon({ filled = false }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d={filled
+        ? 'M15 3 9 3 9.8 8 7 10.8V13h4v8l1 1 1-1v-8h4v-2.2L14.2 8 15 3Z'
+        : 'M16.2 2H7.8l1 5.6L6 10.4V15h5v6.6l1 1 1-1V15h5v-4.6l-2.8-2.8L16.2 2Zm-.2 9.2V13H8v-1.8l3-3-.7-4.2h3.4L13 8.2l3 3Z'} />
     </svg>
   )
 }
@@ -157,8 +180,12 @@ function ImportPanel({ onImported, importedChat }) {
   )
 }
 
-function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
+function SavedChats({ chats, storageEstimate, onOpen, isOpening, pinnedChatIds, onTogglePin }) {
   if (chats.length === 0) return null
+  const orderedChats = [...chats].sort((left, right) => {
+    const pinDifference = Number(pinnedChatIds.has(right.id)) - Number(pinnedChatIds.has(left.id))
+    return pinDifference || right.updatedAt.localeCompare(left.updatedAt)
+  })
 
   return (
     <section className="library-section" aria-labelledby="library-heading">
@@ -172,22 +199,88 @@ function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
         )}
       </div>
       <div className="chat-library">
-        {chats.map((chat) => (
-          <button key={chat.id} type="button" onClick={() => onOpen(chat.id)} disabled={isOpening}>
-            <span className="chat-initial" aria-hidden="true">
-              {chat.name.trim().charAt(0).toUpperCase() || 'C'}
-            </span>
-            <span className="chat-card-copy">
-              <strong>{chat.name}</strong>
-              <small>{chat.messageCount} messages · {chat.attachmentCount} files</small>
-              <small className="chat-coverage">
-                Chat available up to {formatChatCoverageDate(chat.latestMessageAt)}
-              </small>
-            </span>
-            <time>Updated {new Date(chat.updatedAt).toLocaleDateString()}</time>
-          </button>
-        ))}
+        {orderedChats.map((chat) => {
+          const isPinned = pinnedChatIds.has(chat.id)
+          return (
+            <article className={`chat-library-card${isPinned ? ' is-pinned' : ''}`} key={chat.id}>
+              <button className="chat-card-open" type="button" onClick={() => onOpen(chat.id)} disabled={isOpening}>
+                <span className="chat-initial" aria-hidden="true">
+                  {chat.name.trim().charAt(0).toUpperCase() || 'C'}
+                </span>
+                <span className="chat-card-copy">
+                  <strong>{chat.name}</strong>
+                  <small>{chat.messageCount} messages · {chat.attachmentCount} files</small>
+                  <small className="chat-coverage">
+                    Chat available up to {formatChatCoverageDate(chat.latestMessageAt)}
+                  </small>
+                </span>
+                <time>Updated {new Date(chat.updatedAt).toLocaleDateString()}</time>
+              </button>
+              <button
+                className="chat-pin"
+                type="button"
+                aria-label={`${isPinned ? 'Unpin' : 'Pin'} ${chat.name}`}
+                aria-pressed={isPinned}
+                onClick={() => onTogglePin(chat.id)}
+              >
+                <PinIcon filled={isPinned} />
+              </button>
+            </article>
+          )
+        })}
       </div>
+    </section>
+  )
+}
+
+function QuickAccess({ chats, items, pinnedChatIds, bookmarkedItemIds, onOpenChat, onOpenResult, onViewContext, onToggleBookmark }) {
+  const pinnedChats = chats.filter((chat) => pinnedChatIds.has(chat.id))
+  const starredItems = items.filter((item) => bookmarkedItemIds.has(item.id))
+  if (chats.length === 0) return null
+
+  return (
+    <section className="quick-access-section" aria-labelledby="quick-access-heading">
+      <div className="section-heading">
+        <div>
+          <span className="section-kicker">Day 7 shortcuts</span>
+          <h2 id="quick-access-heading">Quick access</h2>
+        </div>
+        <p>Pins and stars stay on this device.</p>
+      </div>
+
+      {pinnedChats.length === 0 && starredItems.length === 0 ? (
+        <div className="quick-access-empty">
+          <StarIcon />
+          <p>Pin a chat or star a search result to keep important school information here.</p>
+        </div>
+      ) : (
+        <div className="quick-access-grid">
+          <div className="quick-access-column">
+            <h3>Pinned chats <span>{pinnedChats.length}</span></h3>
+            {pinnedChats.length === 0 ? <p>No chats pinned yet.</p> : pinnedChats.map((chat) => (
+              <button className="quick-chat" key={chat.id} type="button" onClick={() => onOpenChat(chat.id)}>
+                <span className="chat-initial" aria-hidden="true">{chat.name.trim().charAt(0).toUpperCase() || 'C'}</span>
+                <span><strong>{chat.name}</strong><small>Available through {formatChatCoverageDate(chat.latestMessageAt)}</small></span>
+                <PinIcon filled />
+              </button>
+            ))}
+          </div>
+          <div className="quick-access-column">
+            <h3>Starred items <span>{starredItems.length}</span></h3>
+            {starredItems.length === 0 ? <p>No messages or files starred yet.</p> : starredItems.map((item) => (
+              <article className="quick-item" key={item.id}>
+                <button type="button" onClick={() => item.kind === 'chat' || !item.available ? onViewContext(item) : onOpenResult(item)}>
+                  <span className={`result-kind kind-${item.kind}`}>{item.kind}</span>
+                  <span><strong>{item.kind === 'chat' ? (item.content || 'Message') : item.title}</strong><small>{item.chatName}{item.sender ? ` · ${item.sender}` : ''}</small></span>
+                </button>
+                <button className="star-control is-starred" type="button" aria-label={`Remove star from ${item.title}`} onClick={() => onToggleBookmark(item.id)}>
+                  <StarIcon filled />
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   )
 }
@@ -260,6 +353,8 @@ function SearchSection({
   onViewContext,
   onOpenPerson,
   onOpenGroup,
+  bookmarkedItemIds,
+  onToggleBookmark,
 }) {
   const options = useMemo(() => getSearchOptions(items), [items])
   const hasCriteria = Boolean(
@@ -415,6 +510,15 @@ function SearchSection({
                   </div>
                   <span className="result-tail">
                     <time>{result.timestamp?.slice(0, 10) ?? result.dateText}</time>
+                    <button
+                      className={`star-control${bookmarkedItemIds.has(result.id) ? ' is-starred' : ''}`}
+                      type="button"
+                      aria-label={`${bookmarkedItemIds.has(result.id) ? 'Remove star from' : 'Star'} ${result.title}`}
+                      aria-pressed={bookmarkedItemIds.has(result.id)}
+                      onClick={() => onToggleBookmark(result.id)}
+                    >
+                      <StarIcon filled={bookmarkedItemIds.has(result.id)} />
+                    </button>
                     {!result.available ? (
                       <small className="unavailable-result">Not included in export</small>
                     ) : result.messageId ? (
@@ -515,6 +619,8 @@ function ProfileViewer({
   onViewContext,
   onOpenPerson,
   onOpenGroup,
+  bookmarkedItemIds,
+  onToggleBookmark,
 }) {
   const [tab, setTab] = useState('all')
 
@@ -613,9 +719,20 @@ function ProfileViewer({
                 <strong>{item.kind === 'chat' ? (item.content || 'Message') : item.title}</strong>
                 {item.kind !== 'chat' && <small>{item.content || item.chatName}</small>}
               </button>
-              <span className="profile-item-meta">
-                <time>{item.timestamp?.slice(0, 10) ?? item.dateText}</time>
-                {profile.type === 'person' ? item.chatName : (item.sender || 'WhatsApp system')}
+              <span className="profile-item-actions">
+                <button
+                  className={`star-control${bookmarkedItemIds.has(item.id) ? ' is-starred' : ''}`}
+                  type="button"
+                  aria-label={`${bookmarkedItemIds.has(item.id) ? 'Remove star from' : 'Star'} ${item.title}`}
+                  aria-pressed={bookmarkedItemIds.has(item.id)}
+                  onClick={() => onToggleBookmark(item.id)}
+                >
+                  <StarIcon filled={bookmarkedItemIds.has(item.id)} />
+                </button>
+                <span className="profile-item-meta">
+                  <time>{item.timestamp?.slice(0, 10) ?? item.dateText}</time>
+                  {profile.type === 'person' ? item.chatName : (item.sender || 'WhatsApp system')}
+                </span>
               </span>
             </article>
           ))}
@@ -723,6 +840,8 @@ function App() {
   const [messageContext, setMessageContext] = useState(null)
   const [isContextLoading, setIsContextLoading] = useState(false)
   const [profileSelection, setProfileSelection] = useState(null)
+  const [bookmarkedItemIds, setBookmarkedItemIds] = useState(() => new Set())
+  const [pinnedChatIds, setPinnedChatIds] = useState(() => new Set())
   const profileDirectory = useMemo(() => createProfileDirectory(searchIndex), [searchIndex])
   const activeProfile = useMemo(
     () => (profileSelection ? createProfileView(searchIndex, profileSelection) : null),
@@ -733,14 +852,17 @@ function App() {
   useEffect(() => () => releaseImport(messageContext), [messageContext])
 
   const refreshLibrary = useCallback(async () => {
-    const [chats, estimate, corpus] = await Promise.all([
+    const [chats, estimate, corpus, savedState] = await Promise.all([
       listStoredChats(),
       getStorageEstimate(),
       loadSearchCorpus(),
+      getSavedState(),
     ])
     setStoredChats(chats)
     setStorageEstimate(estimate)
     setSearchIndex(createSearchItems(corpus))
+    setBookmarkedItemIds(new Set(savedState.bookmarkedItemIds))
+    setPinnedChatIds(new Set(savedState.pinnedChatIds))
   }, [])
 
   useEffect(() => {
@@ -843,6 +965,34 @@ function App() {
     setProfileSelection({ type: 'group', id, name })
   }
 
+  async function handleToggleBookmark(itemId) {
+    try {
+      const isStarred = await toggleBookmarkedItem(itemId)
+      setBookmarkedItemIds((current) => {
+        const next = new Set(current)
+        if (isStarred) next.add(itemId)
+        else next.delete(itemId)
+        return next
+      })
+    } catch (error) {
+      setLibraryError(error instanceof Error ? error.message : 'That item could not be starred.')
+    }
+  }
+
+  async function handleTogglePin(chatId) {
+    try {
+      const isPinned = await togglePinnedChat(chatId)
+      setPinnedChatIds((current) => {
+        const next = new Set(current)
+        if (isPinned) next.add(chatId)
+        else next.delete(chatId)
+        return next
+      })
+    } catch (error) {
+      setLibraryError(error instanceof Error ? error.message : 'That chat could not be pinned.')
+    }
+  }
+
   return (
     <main>
       <nav className="topbar" aria-label="Primary navigation">
@@ -867,8 +1017,20 @@ function App() {
         storageEstimate={storageEstimate}
         onOpen={handleOpenStoredChat}
         isOpening={isOpening}
+        pinnedChatIds={pinnedChatIds}
+        onTogglePin={handleTogglePin}
       />
       {libraryError && <p className="error-message library-error" role="alert">{libraryError}</p>}
+      <QuickAccess
+        chats={storedChats}
+        items={searchIndex}
+        pinnedChatIds={pinnedChatIds}
+        bookmarkedItemIds={bookmarkedItemIds}
+        onOpenChat={handleOpenStoredChat}
+        onOpenResult={handleOpenSearchResult}
+        onViewContext={handleViewContext}
+        onToggleBookmark={handleToggleBookmark}
+      />
       <PeopleGroupsDirectory
         directory={profileDirectory}
         onOpenPerson={handleOpenPerson}
@@ -882,6 +1044,8 @@ function App() {
         onViewContext={handleViewContext}
         onOpenPerson={handleOpenPerson}
         onOpenGroup={handleOpenGroup}
+        bookmarkedItemIds={bookmarkedItemIds}
+        onToggleBookmark={handleToggleBookmark}
       />
       {isContextLoading && <p className="context-loading" role="status">Opening message context…</p>}
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
@@ -909,11 +1073,13 @@ function App() {
           }}
           onOpenPerson={handleOpenPerson}
           onOpenGroup={handleOpenGroup}
+          bookmarkedItemIds={bookmarkedItemIds}
+          onToggleBookmark={handleToggleBookmark}
         />
       )}
 
       <footer>
-        <span>Day 6 people &amp; groups</span>
+        <span>Day 7 pins &amp; stars</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>

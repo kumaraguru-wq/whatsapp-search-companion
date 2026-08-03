@@ -6,11 +6,64 @@ import { importWhatsAppFile, releaseImport } from '../src/lib/importWhatsApp.js'
 import {
   deleteLocalDatabaseForTests,
   getStoredAttachment,
+  getSavedState,
   listStoredChats,
   loadMessageContext,
   loadStoredChat,
   saveImportedChat,
+  toggleBookmarkedItem,
+  togglePinnedChat,
 } from '../src/lib/localDatabase.js'
+
+test('persists and removes starred items and pinned chats', async () => {
+  await deleteLocalDatabaseForTests()
+
+  assert.equal(await toggleBookmarkedItem('chat:message-1'), true)
+  assert.equal(await togglePinnedChat('staff-chat'), true)
+  assert.deepEqual(await getSavedState(), {
+    bookmarkedItemIds: ['chat:message-1'],
+    pinnedChatIds: ['staff-chat'],
+  })
+
+  assert.equal(await toggleBookmarkedItem('chat:message-1'), false)
+  assert.equal(await togglePinnedChat('staff-chat'), false)
+  assert.deepEqual(await getSavedState(), { bookmarkedItemIds: [], pinnedChatIds: [] })
+  await deleteLocalDatabaseForTests()
+})
+
+test('upgrades an existing chat database without removing its conversations', async () => {
+  await deleteLocalDatabaseForTests()
+  const legacyDatabase = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('chatfind-local', 1)
+    request.addEventListener('upgradeneeded', () => {
+      const database = request.result
+      database.createObjectStore('chats', { keyPath: 'id' })
+      const messages = database.createObjectStore('messages', { keyPath: 'id' })
+      messages.createIndex('by_chat', 'chatId', { unique: false })
+      const attachments = database.createObjectStore('attachments', { keyPath: 'id' })
+      attachments.createIndex('by_chat', 'chatId', { unique: false })
+    })
+    request.addEventListener('success', () => resolve(request.result), { once: true })
+    request.addEventListener('error', () => reject(request.error), { once: true })
+  })
+  const transaction = legacyDatabase.transaction('chats', 'readwrite')
+  transaction.objectStore('chats').add({
+    id: 'existing-chat',
+    name: 'Existing Staff Chat',
+    messageCount: 0,
+    attachmentCount: 0,
+    updatedAt: '2026-08-01T00:00:00.000Z',
+  })
+  await new Promise((resolve, reject) => {
+    transaction.addEventListener('complete', resolve, { once: true })
+    transaction.addEventListener('error', () => reject(transaction.error), { once: true })
+  })
+  legacyDatabase.close()
+
+  assert.deepEqual(await getSavedState(), { bookmarkedItemIds: [], pinnedChatIds: [] })
+  assert.equal((await listStoredChats())[0].name, 'Existing Staff Chat')
+  await deleteLocalDatabaseForTests()
+})
 
 test('persists an import and skips the same messages and attachment on re-import', async () => {
   await deleteLocalDatabaseForTests()
