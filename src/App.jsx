@@ -296,7 +296,7 @@ function QuickAccess({ chats, items, bookmarkedItemIds, onOpenResult, onViewCont
     <section className="quick-access-section" aria-labelledby="quick-access-heading">
       <div className="section-heading">
         <div>
-          <span className="section-kicker">Day 7 shortcuts</span>
+          <span className="section-kicker">Saved shortcuts</span>
           <h2 id="quick-access-heading">Quick access</h2>
         </div>
         <p>Stars stay on this device.</p>
@@ -399,7 +399,7 @@ function BackupRestoreSection({ onRestored }) {
     <section className="backup-section" aria-labelledby="backup-heading">
       <div className="section-heading">
         <div>
-          <span className="section-kicker">Day 8 protection</span>
+          <span className="section-kicker">Protect your library</span>
           <h2 id="backup-heading">Encrypted backup &amp; restore</h2>
         </div>
         <p>Your password never leaves this device.</p>
@@ -491,7 +491,7 @@ function PeopleGroupsDirectory({ directory, onOpenPerson, onOpenGroup }) {
     <section className="directory-section" aria-labelledby="directory-heading">
       <div className="section-heading">
         <div>
-          <span className="section-kicker">Day 6 directory</span>
+          <span className="section-kicker">Browse your archive</span>
           <h2 id="directory-heading">People &amp; groups</h2>
         </div>
         <p>Open a profile to see everything shared.</p>
@@ -1027,6 +1027,61 @@ function ImportPreview({ chat, importReport }) {
   )
 }
 
+function TeacherGuide() {
+  return (
+    <section className="teacher-guide" id="teacher-guide" aria-labelledby="teacher-guide-heading">
+      <div className="section-heading">
+        <div>
+          <span className="section-kicker">Teacher handover guide</span>
+          <h2 id="teacher-guide-heading">Export, import, find.</h2>
+        </div>
+        <p>Three steps. No account required.</p>
+      </div>
+
+      <div className="guide-grid">
+        <article>
+          <span className="guide-platform">Android</span>
+          <h3>Export from WhatsApp</h3>
+          <ol>
+            <li>Open the private chat or group.</li>
+            <li>Tap <strong>⋮ → More → Export chat</strong>.</li>
+            <li>Choose <strong>Include media</strong> when PDFs, photos and documents are needed.</li>
+            <li>Save or share the resulting ZIP file.</li>
+          </ol>
+        </article>
+
+        <article>
+          <span className="guide-platform">iPhone</span>
+          <h3>Export from WhatsApp</h3>
+          <ol>
+            <li>Open the private chat or group.</li>
+            <li>Tap the chat or group name at the top.</li>
+            <li>Choose <strong>Export Chat → Attach Media</strong>.</li>
+            <li>Select <strong>Save to Files</strong> and keep the ZIP file.</li>
+          </ol>
+        </article>
+
+        <article>
+          <span className="guide-platform">ChatFind</span>
+          <h3>Import and search</h3>
+          <ol>
+            <li>Open ChatFind and press <strong>Choose export</strong>.</li>
+            <li>Select the WhatsApp ZIP or TXT file.</li>
+            <li>Search by person, group, date, keyword or file type.</li>
+            <li>Star important results and download an encrypted backup.</li>
+          </ol>
+        </article>
+      </div>
+
+      <div className="guide-handover-notes">
+        <p><strong>Privacy:</strong> Chats remain inside this browser. GitHub Pages receives none of the imported data.</p>
+        <p><strong>Missing files:</strong> Download the file in WhatsApp first, then export again with media and re-import.</p>
+        <p><strong>New device:</strong> Transfer the `.chatfind-backup` file and restore it with the same password.</p>
+      </div>
+    </section>
+  )
+}
+
 function App() {
   const [theme, setTheme] = useState(() => {
     try {
@@ -1205,6 +1260,7 @@ function App() {
           <span>ChatFind</span>
         </a>
         <div className="nav-actions">
+          <a className="help-link" href="#teacher-guide">Help</a>
           <button
             className="theme-toggle"
             type="button"
@@ -1264,6 +1320,7 @@ function App() {
       {isContextLoading && <p className="context-loading" role="status">Opening message context…</p>}
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
       {importedChat && <ImportPreview chat={importedChat} importReport={importReport} />}
+      <TeacherGuide />
 
       {messageContext && (
         <MessageContextViewer
@@ -1293,7 +1350,7 @@ function App() {
       )}
 
       <footer>
-        <span>Day 9 install &amp; themes</span>
+        <span>ChatFind v1.0</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>

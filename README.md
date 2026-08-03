@@ -1,35 +1,36 @@
 # ChatFind
 
-ChatFind is an installable, local-only PWA for importing and searching exported
-WhatsApp conversations. Chat data stays in the user's browser and is not sent to
-a server.
+ChatFind is an installable, local-only web app for importing and searching
+exported WhatsApp conversations. Chats, files and passwords stay in the user's
+browser; GitHub Pages hosts only the application code.
 
-## Current capabilities
+**Live application:** https://kumaraguru-wq.github.io/whatsapp-search-companion/
 
-- Import Android and iPhone WhatsApp `.txt` exports.
-- Open `.zip` exports and match included attachments to their messages.
-- Recognize senders, dates, multiline messages, links and system messages.
-- Preview participants, recent messages and extracted files without uploading them.
-- Persist chats, messages and attachments in IndexedDB on the current device.
-- Skip duplicate messages and files when the same export is imported again.
-- Search locally with typo-tolerant keywords and sender, chat, date and type filters.
-- See the latest message date covered by every saved chat export in the local library.
-- Browse local person and group profiles with separate message, file, and link views.
-- Star individual messages, files, images, and links for persistent local Quick Access.
-- Download and restore a password-encrypted local backup containing chats, files, and stars.
-- Switch between remembered light/dark themes and install ChatFind from Android, iPhone, or desktop browsers.
-- Open stored search-result files and distinguish media that WhatsApp omitted from an export.
-- Browse category tabs and open the original message with nearby conversation context.
-- Open available file and link results by selecting their title; context remains a separate action.
+**Teacher instructions:** [TEACHER_GUIDE.md](./TEACHER_GUIDE.md)
 
-ChatFind requests persistent browser storage where supported, but encrypted
-downloadable backups are still planned for Day 8.
+## Version 1.0 features
 
-## Import a chat
+- Import Android and iPhone WhatsApp TXT or ZIP exports.
+- Extract included PDFs, documents, spreadsheets, links and images.
+- Store conversations and attachments locally in IndexedDB.
+- Re-import updated exports without duplicating existing messages or files.
+- Search with typo-tolerant keywords and sender, group, date and file-type filters.
+- Open files directly or view the matching message with nearby context.
+- Browse person and group profiles with messages, files and links.
+- Star important results for persistent local Quick Access.
+- Download and restore password-encrypted backups containing chats, files and stars.
+- Switch between remembered light and dark themes.
+- Install as an offline-ready PWA on supported phones and computers.
 
-On WhatsApp, open a chat, choose **Export chat**, then save either the text-only
-export or the ZIP with media. Open ChatFind and select that exported file. A ZIP
-must contain the WhatsApp transcript as a `.txt` file.
+## Privacy and storage
+
+Imported data is never uploaded by ChatFind. It remains in the current browser's
+IndexedDB storage. Browser data can still be removed by the device or user, so
+teachers should periodically download an encrypted backup and store the backup
+file separately from its password.
+
+Files missing from a WhatsApp export cannot be reconstructed. Download the file
+inside WhatsApp, export the chat again with media, and re-import the updated ZIP.
 
 ## Local development
 
@@ -37,6 +38,7 @@ Install Node.js 22 LTS, then run:
 
 ```powershell
 npm install
+npm test
 npm run dev
 ```
 
@@ -47,17 +49,15 @@ npm run build
 npm run preview
 ```
 
-The service worker is disabled during Vite development and enabled in a
-production build.
+The service worker is disabled during Vite development and enabled in production.
 
-## GitHub Pages
+## Deployment
 
-The included GitHub Actions workflow builds and deploys the `main` branch.
-After pushing the repository, open **Settings > Pages** and set the source to
-**GitHub Actions**.
+The GitHub Actions workflow tests and builds every push to `main`, then deploys
+the `dist` directory to GitHub Pages. Pages must use **GitHub Actions** as its
+source in the repository settings.
 
-## Privacy boundary
+## Release
 
-GitHub Pages hosts only the application files. Imported conversations will be
-stored locally in IndexedDB beginning with Day 3 and must never be committed to
-the repository.
+Version 1.0 completes the planned local-only application and handover. The app
+has no server, staff accounts, Firebase project or ongoing hosting fee.

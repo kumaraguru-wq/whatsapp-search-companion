@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatfind-shell-v13'
+const CACHE_NAME = 'chatfind-shell-v14'
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg']
 
 self.addEventListener('install', (event) => {
