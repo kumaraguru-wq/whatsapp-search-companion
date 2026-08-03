@@ -12,6 +12,7 @@ a server.
 - Preview participants, recent messages and extracted files without uploading them.
 - Persist chats, messages and attachments in IndexedDB on the current device.
 - Skip duplicate messages and files when the same export is imported again.
+- Search locally with typo-tolerant keywords and sender, chat, date and type filters.
 
 ChatFind requests persistent browser storage where supported, but encrypted
 downloadable backups are still planned for Day 8.

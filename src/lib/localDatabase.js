@@ -279,6 +279,22 @@ export async function loadStoredChat(chatId) {
   }
 }
 
+export async function loadSearchCorpus() {
+  const database = await openDatabase()
+  const transaction = database.transaction(['chats', 'messages', 'attachments'], 'readonly')
+  const completed = transactionToPromise(transaction)
+  const chatsRequest = requestToPromise(transaction.objectStore('chats').getAll())
+  const messagesRequest = requestToPromise(transaction.objectStore('messages').getAll())
+  const attachmentsRequest = requestToPromise(transaction.objectStore('attachments').getAll())
+  const [chats, messages, attachments] = await Promise.all([
+    chatsRequest,
+    messagesRequest,
+    attachmentsRequest,
+  ])
+  await completed
+  return { chats, messages, attachments }
+}
+
 export async function getStorageEstimate() {
   if (!navigator.storage?.estimate) return null
   const estimate = await navigator.storage.estimate()

@@ -1,12 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { importWhatsAppFile, releaseImport } from './lib/importWhatsApp.js'
 import {
   getStorageEstimate,
   listStoredChats,
+  loadSearchCorpus,
   loadStoredChat,
   requestPersistentStorage,
   saveImportedChat,
 } from './lib/localDatabase.js'
+import {
+  createSearchItems,
+  getSearchOptions,
+  SEARCH_TYPES,
+  searchItems,
+} from './lib/searchEngine.js'
+
+const EMPTY_SEARCH_FILTERS = {
+  query: '',
+  sender: 'all',
+  group: 'all',
+  type: 'all',
+  fromDate: '',
+  toDate: '',
+}
 
 function ShieldIcon() {
   return (
@@ -143,6 +159,117 @@ function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
   )
 }
 
+function SearchSection({ items, filters, onFiltersChange }) {
+  const options = useMemo(() => getSearchOptions(items), [items])
+  const hasCriteria = Boolean(
+    filters.query.trim() ||
+      filters.sender !== 'all' ||
+      filters.group !== 'all' ||
+      filters.type !== 'all' ||
+      filters.fromDate ||
+      filters.toDate,
+  )
+  const results = useMemo(
+    () => (hasCriteria ? searchItems(items, { ...filters, limit: 60 }) : []),
+    [filters, hasCriteria, items],
+  )
+
+  function updateFilter(name, value) {
+    onFiltersChange((current) => ({ ...current, [name]: value }))
+  }
+
+  return (
+    <section className="search-section" aria-labelledby="search-heading">
+      <div className="section-heading">
+        <div>
+          <span className="section-kicker">Local search</span>
+          <h2 id="search-heading">Find anything you remember</h2>
+        </div>
+        <p>Typos and partial names are okay.</p>
+      </div>
+
+      <div className="search-shell">
+        <label className="search-box">
+          <span className="visually-hidden">Search saved chats</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m20.7 19.3-4.2-4.2a7.5 7.5 0 1 0-1.4 1.4l4.2 4.2 1.4-1.4ZM5 10.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z" />
+          </svg>
+          <input
+            type="search"
+            value={filters.query}
+            onChange={(event) => updateFilter('query', event.target.value)}
+            placeholder="Try “Headmistress PDF” or “exam timetable”"
+            disabled={items.length === 0}
+          />
+          {hasCriteria && (
+            <button type="button" onClick={() => onFiltersChange({ ...EMPTY_SEARCH_FILTERS })}>
+              Clear
+            </button>
+          )}
+        </label>
+
+        <div className="search-filters">
+          <label>
+            <span>Sender</span>
+            <select value={filters.sender} onChange={(event) => updateFilter('sender', event.target.value)}>
+              <option value="all">All senders</option>
+              {options.senders.map((sender) => <option key={sender} value={sender}>{sender}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Group</span>
+            <select value={filters.group} onChange={(event) => updateFilter('group', event.target.value)}>
+              <option value="all">All chats</option>
+              {options.groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Type</span>
+            <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)}>
+              {SEARCH_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>From</span>
+            <input type="date" value={filters.fromDate} onChange={(event) => updateFilter('fromDate', event.target.value)} />
+          </label>
+          <label>
+            <span>To</span>
+            <input type="date" value={filters.toDate} onChange={(event) => updateFilter('toDate', event.target.value)} />
+          </label>
+        </div>
+      </div>
+
+      {items.length === 0 && <p className="search-empty">Import a chat to begin searching.</p>}
+      {hasCriteria && items.length > 0 && (
+        <div className="search-results" aria-live="polite">
+          <div className="search-result-count">
+            <strong>{results.length}</strong> {results.length === 1 ? 'result' : 'results'}
+            {results.length === 60 && ' (showing the first 60)'}
+          </div>
+          {results.length === 0 ? (
+            <p className="search-empty">No saved item matches those words and filters.</p>
+          ) : (
+            <div className="day-four-results">
+              {results.map((result) => (
+                <article key={result.id}>
+                  <span className={`result-kind kind-${result.kind}`}>{result.kind}</span>
+                  <div>
+                    <h3>{result.title}</h3>
+                    <p>{result.content || result.title}</p>
+                    <small>{result.chatName}{result.sender ? ` · ${result.sender}` : ''}</small>
+                  </div>
+                  <time>{result.timestamp?.slice(0, 10) ?? result.dateText}</time>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function ImportPreview({ chat, importReport }) {
   const linkCount = chat.messages.reduce((total, message) => total + message.links.length, 0)
   const recentMessages = chat.messages.slice(-12)
@@ -236,13 +363,20 @@ function App() {
   const [storageEstimate, setStorageEstimate] = useState(null)
   const [libraryError, setLibraryError] = useState('')
   const [isOpening, setIsOpening] = useState(false)
+  const [searchIndex, setSearchIndex] = useState([])
+  const [searchFilters, setSearchFilters] = useState({ ...EMPTY_SEARCH_FILTERS })
 
   useEffect(() => () => releaseImport(importedChat), [importedChat])
 
   const refreshLibrary = useCallback(async () => {
-    const [chats, estimate] = await Promise.all([listStoredChats(), getStorageEstimate()])
+    const [chats, estimate, corpus] = await Promise.all([
+      listStoredChats(),
+      getStorageEstimate(),
+      loadSearchCorpus(),
+    ])
     setStoredChats(chats)
     setStorageEstimate(estimate)
+    setSearchIndex(createSearchItems(corpus))
   }, [])
 
   useEffect(() => {
@@ -306,11 +440,12 @@ function App() {
         isOpening={isOpening}
       />
       {libraryError && <p className="error-message library-error" role="alert">{libraryError}</p>}
+      <SearchSection items={searchIndex} filters={searchFilters} onFiltersChange={setSearchFilters} />
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
       {importedChat && <ImportPreview chat={importedChat} importReport={importReport} />}
 
       <footer>
-        <span>Day 3 local library</span>
+        <span>Day 4 smart search</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>
