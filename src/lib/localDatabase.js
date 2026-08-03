@@ -1,5 +1,5 @@
 const DATABASE_NAME = 'chatfind-local'
-const DATABASE_VERSION = 2
+const DATABASE_VERSION = 3
 
 let databasePromise
 
@@ -45,9 +45,7 @@ function openDatabase() {
         database.createObjectStore('bookmarks', { keyPath: 'id' })
       }
 
-      if (!database.objectStoreNames.contains('pinnedChats')) {
-        database.createObjectStore('pinnedChats', { keyPath: 'id' })
-      }
+      if (database.objectStoreNames.contains('pinnedChats')) database.deleteObjectStore('pinnedChats')
     })
 
     request.addEventListener('success', () => {
@@ -424,13 +422,12 @@ export async function requestPersistentStorage() {
 
 export async function getSavedState() {
   const database = await openDatabase()
-  const transaction = database.transaction(['bookmarks', 'pinnedChats'], 'readonly')
+  const transaction = database.transaction('bookmarks', 'readonly')
   const completed = transactionToPromise(transaction)
   const bookmarkRequest = requestToPromise(transaction.objectStore('bookmarks').getAllKeys())
-  const pinRequest = requestToPromise(transaction.objectStore('pinnedChats').getAllKeys())
-  const [bookmarkedItemIds, pinnedChatIds] = await Promise.all([bookmarkRequest, pinRequest])
+  const bookmarkedItemIds = await bookmarkRequest
   await completed
-  return { bookmarkedItemIds, pinnedChatIds }
+  return { bookmarkedItemIds }
 }
 
 async function toggleSavedRecord(storeName, id) {
@@ -453,10 +450,6 @@ async function toggleSavedRecord(storeName, id) {
 
 export function toggleBookmarkedItem(itemId) {
   return toggleSavedRecord('bookmarks', itemId)
-}
-
-export function togglePinnedChat(chatId) {
-  return toggleSavedRecord('pinnedChats', chatId)
 }
 
 export async function deleteLocalDatabaseForTests() {

@@ -1244,41 +1244,10 @@ footer {
 .chat-card-open {
   width: 100%;
   min-height: 100%;
-  padding-right: 56px;
+  padding-right: 18px;
 }
 
-.chat-library-card.is-pinned .chat-card-open {
-  border-color: rgba(241, 190, 91, 0.36);
-  box-shadow: inset 3px 0 0 #e6b95d;
-}
-
-.chat-pin {
-  position: absolute;
-  top: 50%;
-  right: 13px;
-  display: grid;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  place-items: center;
-  color: #71867e;
-  background: rgba(7, 17, 15, 0.64);
-  border: 1px solid rgba(167, 218, 202, 0.11);
-  border-radius: 10px;
-  cursor: pointer;
-  transform: translateY(-50%);
-}
-
-.chat-pin:hover,
-.chat-pin[aria-pressed="true"] {
-  color: #f1c66d;
-  background: rgba(214, 164, 62, 0.12);
-  border-color: rgba(241, 198, 109, 0.25);
-}
-
-.chat-pin svg,
 .star-control svg,
-.quick-chat > svg,
 .quick-access-empty > svg {
   width: 18px;
   fill: currentColor;
@@ -1314,18 +1283,16 @@ footer {
   line-height: 1.5;
 }
 
-.quick-access-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
 .quick-access-column {
   min-width: 0;
   padding: 17px;
   background: rgba(12, 25, 22, 0.88);
   border: 1px solid rgba(167, 218, 202, 0.13);
   border-radius: 19px;
+}
+
+.quick-access-column.starred-only {
+  width: min(760px, 100%);
 }
 
 .quick-access-column > h3 {
@@ -1356,48 +1323,6 @@ footer {
   color: #71867e;
   font-size: 0.75rem;
   text-align: center;
-}
-
-.quick-chat {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 11px 0;
-  color: #dceae5;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid rgba(167, 218, 202, 0.075);
-  text-align: left;
-  cursor: pointer;
-}
-
-.quick-chat > span:nth-child(2) {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.quick-chat strong,
-.quick-chat small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quick-chat strong {
-  color: #e9f5f1;
-  font-size: 0.82rem;
-}
-
-.quick-chat small {
-  color: #7c9189;
-  font-size: 0.65rem;
-}
-
-.quick-chat > svg {
-  color: #f0c66e;
 }
 
 .quick-item {
@@ -1480,17 +1405,9 @@ footer {
     padding-bottom: 58px;
   }
 
-  .quick-access-grid {
-    grid-template-columns: 1fr;
-  }
-
   .quick-access-empty {
     align-items: flex-start;
     text-align: left;
-  }
-
-  .chat-card-open {
-    padding-right: 54px;
   }
 
   .profile-item-actions {
@@ -1500,6 +1417,70 @@ footer {
 
   .profile-item-meta {
     grid-column: auto;
+  }
+}
+
+/* Keep long WhatsApp names inside their cards on narrow screens. */
+.chat-card-copy strong,
+.directory-list strong,
+.quick-item strong,
+.profile-heading-copy h2,
+.day-four-results h3 {
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.chat-card-copy strong,
+.directory-list strong,
+.quick-item strong,
+.day-four-results h3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.profile-heading-copy h2 {
+  line-height: 1.08;
+}
+
+.day-four-results {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.day-four-results .search-result-card,
+.result-main,
+.result-copy,
+.result-profile-links,
+.quick-item,
+.quick-item > button:first-child {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.day-four-results .search-result-card,
+.quick-item {
+  overflow: hidden;
+}
+
+.day-four-results p,
+.result-profile-links button,
+.quick-item small {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .chat-card-copy strong,
+  .directory-list strong,
+  .quick-item strong,
+  .day-four-results h3 {
+    -webkit-line-clamp: 3;
+  }
+
+  .day-four-results .search-result-card {
+    width: 100%;
   }
 }
 

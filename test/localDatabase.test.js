@@ -12,29 +12,25 @@ import {
   loadStoredChat,
   saveImportedChat,
   toggleBookmarkedItem,
-  togglePinnedChat,
 } from '../src/lib/localDatabase.js'
 
-test('persists and removes starred items and pinned chats', async () => {
+test('persists and removes starred items', async () => {
   await deleteLocalDatabaseForTests()
 
   assert.equal(await toggleBookmarkedItem('chat:message-1'), true)
-  assert.equal(await togglePinnedChat('staff-chat'), true)
   assert.deepEqual(await getSavedState(), {
     bookmarkedItemIds: ['chat:message-1'],
-    pinnedChatIds: ['staff-chat'],
   })
 
   assert.equal(await toggleBookmarkedItem('chat:message-1'), false)
-  assert.equal(await togglePinnedChat('staff-chat'), false)
-  assert.deepEqual(await getSavedState(), { bookmarkedItemIds: [], pinnedChatIds: [] })
+  assert.deepEqual(await getSavedState(), { bookmarkedItemIds: [] })
   await deleteLocalDatabaseForTests()
 })
 
-test('upgrades an existing chat database without removing its conversations', async () => {
+test('removes the old pin store without removing existing conversations', async () => {
   await deleteLocalDatabaseForTests()
   const legacyDatabase = await new Promise((resolve, reject) => {
-    const request = indexedDB.open('chatfind-local', 1)
+    const request = indexedDB.open('chatfind-local', 2)
     request.addEventListener('upgradeneeded', () => {
       const database = request.result
       database.createObjectStore('chats', { keyPath: 'id' })
@@ -42,11 +38,13 @@ test('upgrades an existing chat database without removing its conversations', as
       messages.createIndex('by_chat', 'chatId', { unique: false })
       const attachments = database.createObjectStore('attachments', { keyPath: 'id' })
       attachments.createIndex('by_chat', 'chatId', { unique: false })
+      database.createObjectStore('bookmarks', { keyPath: 'id' })
+      database.createObjectStore('pinnedChats', { keyPath: 'id' })
     })
     request.addEventListener('success', () => resolve(request.result), { once: true })
     request.addEventListener('error', () => reject(request.error), { once: true })
   })
-  const transaction = legacyDatabase.transaction('chats', 'readwrite')
+  const transaction = legacyDatabase.transaction(['chats', 'pinnedChats'], 'readwrite')
   transaction.objectStore('chats').add({
     id: 'existing-chat',
     name: 'Existing Staff Chat',
@@ -54,14 +52,22 @@ test('upgrades an existing chat database without removing its conversations', as
     attachmentCount: 0,
     updatedAt: '2026-08-01T00:00:00.000Z',
   })
+  transaction.objectStore('pinnedChats').add({ id: 'existing-chat' })
   await new Promise((resolve, reject) => {
     transaction.addEventListener('complete', resolve, { once: true })
     transaction.addEventListener('error', () => reject(transaction.error), { once: true })
   })
   legacyDatabase.close()
 
-  assert.deepEqual(await getSavedState(), { bookmarkedItemIds: [], pinnedChatIds: [] })
+  assert.deepEqual(await getSavedState(), { bookmarkedItemIds: [] })
   assert.equal((await listStoredChats())[0].name, 'Existing Staff Chat')
+  const upgradedDatabase = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('chatfind-local', 3)
+    request.addEventListener('success', () => resolve(request.result), { once: true })
+    request.addEventListener('error', () => reject(request.error), { once: true })
+  })
+  assert.equal(upgradedDatabase.objectStoreNames.contains('pinnedChats'), false)
+  upgradedDatabase.close()
   await deleteLocalDatabaseForTests()
 })
 
