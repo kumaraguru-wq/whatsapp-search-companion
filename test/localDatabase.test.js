@@ -61,3 +61,40 @@ test('persists an import and skips the same messages and attachment on re-import
     await deleteLocalDatabaseForTests()
   }
 })
+
+test('links a file downloaded later to its already stored message', async () => {
+  await deleteLocalDatabaseForTests()
+  const transcript = '03/08/2026, 9:29 am - Headmistress: Circular.pdf (file attached)'
+  const textOnly = await importWhatsAppFile(
+    new File([transcript], 'WhatsApp Chat with Teachers.txt', { type: 'text/plain' }),
+  )
+  const firstResult = await saveImportedChat(textOnly)
+  releaseImport(textOnly)
+
+  const zip = new JSZip()
+  zip.file('WhatsApp Chat with Teachers.txt', transcript)
+  zip.file('Circular.pdf', new Uint8Array([0x25, 0x50, 0x44, 0x46]))
+  const archive = await zip.generateAsync({ type: 'uint8array' })
+  const withMedia = await importWhatsAppFile(
+    new File([archive], 'teachers-with-media.zip', { type: 'application/zip' }),
+  )
+  const secondResult = await saveImportedChat(withMedia)
+  releaseImport(withMedia)
+
+  assert.equal(firstResult.addedMessages, 1)
+  assert.equal(firstResult.addedAttachments, 0)
+  assert.equal(secondResult.addedMessages, 0)
+  assert.equal(secondResult.duplicateMessages, 1)
+  assert.equal(secondResult.addedAttachments, 1)
+
+  const chat = (await listStoredChats())[0]
+  const stored = await loadStoredChat(chat.id)
+  try {
+    assert.equal(stored.messages.length, 1)
+    assert.equal(stored.messages[0].attachments.length, 1)
+    assert.equal(stored.messages[0].attachments[0].name, 'Circular.pdf')
+  } finally {
+    releaseImport(stored)
+    await deleteLocalDatabaseForTests()
+  }
+})

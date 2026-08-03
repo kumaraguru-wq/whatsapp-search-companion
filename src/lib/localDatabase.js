@@ -169,23 +169,34 @@ export async function saveImportedChat(importedChat) {
 
   try {
     const existingChatRequest = requestToPromise(chatStore.get(chatId))
-    const existingMessageRequests = messageRecords.map(({ id }) => requestToPromise(messageStore.getKey(id)))
+    const existingMessageRequests = messageRecords.map(({ id }) => requestToPromise(messageStore.get(id)))
     const existingAttachmentRequests = attachmentRecords.map(({ id }) =>
       requestToPromise(attachmentStore.getKey(id)),
     )
 
-    const [existingChat, existingMessageIds, existingAttachmentIds] = await Promise.all([
+    const [existingChat, existingMessages, existingAttachmentIds] = await Promise.all([
       existingChatRequest,
       Promise.all(existingMessageRequests),
       Promise.all(existingAttachmentRequests),
     ])
     const now = new Date().toISOString()
-    const newMessages = messageRecords.filter((_, index) => existingMessageIds[index] === undefined)
+    const newMessages = messageRecords.filter((_, index) => existingMessages[index] === undefined)
     const newAttachments = attachmentRecords.filter(
       (_, index) => existingAttachmentIds[index] === undefined,
     )
 
     for (const message of newMessages) messageStore.add(message)
+    for (let index = 0; index < messageRecords.length; index += 1) {
+      const existingMessage = existingMessages[index]
+      if (!existingMessage) continue
+      const mergedAttachmentIds = [...new Set([
+        ...(existingMessage.attachmentIds ?? []),
+        ...messageRecords[index].attachmentIds,
+      ])]
+      if (mergedAttachmentIds.length !== (existingMessage.attachmentIds ?? []).length) {
+        messageStore.put({ ...existingMessage, attachmentIds: mergedAttachmentIds })
+      }
+    }
     for (const attachment of newAttachments) attachmentStore.add(attachment)
 
     const participants = [...new Set([
