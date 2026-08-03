@@ -1236,6 +1236,152 @@ footer {
   }
 }
 
+.backup-section {
+  padding: 0 0 78px;
+}
+
+.backup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.backup-card {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+  background: rgba(12, 25, 22, 0.88);
+  border: 1px solid rgba(167, 218, 202, 0.13);
+  border-radius: 20px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+}
+
+.backup-number {
+  display: grid;
+  width: 36px;
+  height: 28px;
+  place-items: center;
+  color: #61dfbd;
+  background: rgba(37, 199, 157, 0.1);
+  border: 1px solid rgba(89, 223, 187, 0.14);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.backup-card h3 {
+  margin: 0 0 7px;
+  color: #f0f8f5;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.backup-card > div > p {
+  margin: 0;
+  color: #82978f;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.backup-card label {
+  display: grid;
+  gap: 7px;
+}
+
+.backup-card label > span {
+  color: #839890;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.backup-card input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 13px;
+  color: #e7f2ee;
+  background: #091512;
+  border: 1px solid rgba(167, 218, 202, 0.14);
+  border-radius: 10px;
+  outline: 0;
+}
+
+.backup-card input:focus {
+  border-color: rgba(89, 223, 187, 0.48);
+  box-shadow: 0 0 0 3px rgba(37, 199, 157, 0.08);
+}
+
+.backup-card input::file-selector-button {
+  margin-right: 10px;
+  padding: 7px 9px;
+  color: #8fe8cf;
+  background: rgba(37, 199, 157, 0.1);
+  border: 0;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.backup-card > button {
+  min-height: 45px;
+  padding: 12px 16px;
+  color: #06120f;
+  background: linear-gradient(135deg, #58dfbb, #27b38f);
+  border: 0;
+  border-radius: 11px;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(27, 190, 149, 0.16);
+}
+
+.backup-card > button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.backup-success {
+  margin: 0;
+  padding: 10px 12px;
+  color: #7ce5c8;
+  background: rgba(37, 199, 157, 0.09);
+  border-radius: 9px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.backup-error {
+  margin-top: 13px;
+}
+
+.backup-warning {
+  margin: 15px 0 0;
+  color: #7e928b;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .backup-section {
+    padding-bottom: 58px;
+  }
+
+  .backup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .backup-card {
+    padding: 20px;
+  }
+}
+
 .chat-library-card {
   position: relative;
   min-width: 0;

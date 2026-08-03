@@ -5,14 +5,61 @@ import JSZip from 'jszip'
 import { importWhatsAppFile, releaseImport } from '../src/lib/importWhatsApp.js'
 import {
   deleteLocalDatabaseForTests,
+  exportLocalSnapshot,
   getStoredAttachment,
   getSavedState,
   listStoredChats,
   loadMessageContext,
   loadStoredChat,
+  restoreLocalSnapshot,
   saveImportedChat,
   toggleBookmarkedItem,
 } from '../src/lib/localDatabase.js'
+
+test('exports and safely restores a complete local snapshot', async () => {
+  await deleteLocalDatabaseForTests()
+  const snapshot = {
+    chats: [{
+      id: 'backup-chat',
+      name: 'Backup Chat',
+      messageCount: 1,
+      attachmentCount: 1,
+      updatedAt: '2026-08-03T10:00:00.000Z',
+    }],
+    messages: [{
+      id: 'backup-message',
+      chatId: 'backup-chat',
+      sender: 'Teacher',
+      content: 'Circular',
+      timestamp: '2026-08-03T10:00:00',
+      links: [],
+      attachmentIds: ['backup-file'],
+    }],
+    attachments: [{
+      id: 'backup-file',
+      chatId: 'backup-chat',
+      name: 'Circular.pdf',
+      messageIds: ['backup-message'],
+      blob: new Blob(['%PDF-backup'], { type: 'application/pdf' }),
+    }],
+    bookmarks: [{ id: 'chat:backup-message', createdAt: '2026-08-03T10:01:00.000Z' }],
+  }
+
+  const report = await restoreLocalSnapshot(snapshot)
+  const exported = await exportLocalSnapshot()
+  assert.deepEqual(report, { chats: 1, messages: 1, attachments: 1, bookmarks: 1 })
+  assert.equal(exported.chats[0].name, 'Backup Chat')
+  assert.equal(exported.messages[0].content, 'Circular')
+  assert.equal(await exported.attachments[0].blob.text(), '%PDF-backup')
+  assert.equal(exported.bookmarks[0].id, 'chat:backup-message')
+
+  await restoreLocalSnapshot({
+    ...snapshot,
+    chats: [{ ...snapshot.chats[0], name: 'Older Backup', updatedAt: '2026-08-01T10:00:00.000Z' }],
+  })
+  assert.equal((await listStoredChats())[0].name, 'Backup Chat')
+  await deleteLocalDatabaseForTests()
+})
 
 test('persists and removes starred items', async () => {
   await deleteLocalDatabaseForTests()

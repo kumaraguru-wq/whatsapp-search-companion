@@ -452,6 +452,75 @@ export function toggleBookmarkedItem(itemId) {
   return toggleSavedRecord('bookmarks', itemId)
 }
 
+export async function exportLocalSnapshot() {
+  const database = await openDatabase()
+  const transaction = database.transaction(
+    ['chats', 'messages', 'attachments', 'bookmarks'],
+    'readonly',
+  )
+  const completed = transactionToPromise(transaction)
+  const [chats, messages, attachments, bookmarks] = await Promise.all([
+    requestToPromise(transaction.objectStore('chats').getAll()),
+    requestToPromise(transaction.objectStore('messages').getAll()),
+    requestToPromise(transaction.objectStore('attachments').getAll()),
+    requestToPromise(transaction.objectStore('bookmarks').getAll()),
+  ])
+  await completed
+  return { chats, messages, attachments, bookmarks }
+}
+
+function validateSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') throw new Error('This backup is not valid.')
+  for (const key of ['chats', 'messages', 'attachments', 'bookmarks']) {
+    if (!Array.isArray(snapshot[key])) throw new Error('This backup is missing required local data.')
+  }
+}
+
+export async function restoreLocalSnapshot(snapshot) {
+  validateSnapshot(snapshot)
+  const database = await openDatabase()
+  const readTransaction = database.transaction('chats', 'readonly')
+  const readCompleted = transactionToPromise(readTransaction)
+  const existingChats = await requestToPromise(readTransaction.objectStore('chats').getAll())
+  await readCompleted
+  const existingChatsById = new Map(existingChats.map((chat) => [chat.id, chat]))
+
+  const transaction = database.transaction(
+    ['chats', 'messages', 'attachments', 'bookmarks'],
+    'readwrite',
+  )
+  const completed = transactionToPromise(transaction)
+  const chatStore = transaction.objectStore('chats')
+  const messageStore = transaction.objectStore('messages')
+  const attachmentStore = transaction.objectStore('attachments')
+  const bookmarkStore = transaction.objectStore('bookmarks')
+
+  for (const chat of snapshot.chats) {
+    if (!chat?.id) continue
+    const existing = existingChatsById.get(chat.id)
+    if (!existing || (chat.updatedAt ?? '') >= (existing.updatedAt ?? '')) chatStore.put(chat)
+  }
+  for (const message of snapshot.messages) {
+    if (message?.id && message?.chatId) messageStore.put(message)
+  }
+  for (const attachment of snapshot.attachments) {
+    if (attachment?.id && attachment?.chatId && attachment.blob instanceof Blob) {
+      attachmentStore.put(attachment)
+    }
+  }
+  for (const bookmark of snapshot.bookmarks) {
+    if (bookmark?.id) bookmarkStore.put(bookmark)
+  }
+
+  await completed
+  return {
+    chats: snapshot.chats.length,
+    messages: snapshot.messages.length,
+    attachments: snapshot.attachments.length,
+    bookmarks: snapshot.bookmarks.length,
+  }
+}
+
 export async function deleteLocalDatabaseForTests() {
   if (databasePromise) {
     const database = await databasePromise

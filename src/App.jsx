@@ -4,14 +4,17 @@ import {
   getStorageEstimate,
   getStoredAttachment,
   getSavedState,
+  exportLocalSnapshot,
   listStoredChats,
   loadMessageContext,
   loadSearchCorpus,
   loadStoredChat,
   requestPersistentStorage,
+  restoreLocalSnapshot,
   saveImportedChat,
   toggleBookmarkedItem,
 } from './lib/localDatabase.js'
+import { createEncryptedBackup, openEncryptedBackup } from './lib/encryptedBackup.js'
 import { inferMimeType } from './lib/whatsappParser.js'
 import {
   createProfileDirectory,
@@ -241,6 +244,163 @@ function QuickAccess({ chats, items, bookmarkedItemIds, onOpenResult, onViewCont
             ))}
           </div>
       )}
+    </section>
+  )
+}
+
+function BackupRestoreSection({ onRestored }) {
+  const [backupPassword, setBackupPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [restorePassword, setRestorePassword] = useState('')
+  const [restoreFile, setRestoreFile] = useState(null)
+  const [isBackingUp, setIsBackingUp] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
+  const [backupStatus, setBackupStatus] = useState('')
+  const [restoreStatus, setRestoreStatus] = useState('')
+  const [error, setError] = useState('')
+
+  async function handleBackup(event) {
+    event.preventDefault()
+    setError('')
+    setBackupStatus('')
+    if (backupPassword !== confirmPassword) {
+      setError('The two backup passwords do not match.')
+      return
+    }
+    setIsBackingUp(true)
+    try {
+      const snapshot = await exportLocalSnapshot()
+      if (snapshot.chats.length === 0) throw new Error('Import at least one chat before creating a backup.')
+      const blob = await createEncryptedBackup(snapshot, backupPassword)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `chatfind-backup-${new Date().toISOString().slice(0, 10)}.chatfind-backup`
+      anchor.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      setBackupStatus(`Encrypted backup downloaded · ${formatBytes(blob.size)}`)
+      setBackupPassword('')
+      setConfirmPassword('')
+    } catch (backupError) {
+      setError(backupError instanceof Error ? backupError.message : 'The encrypted backup could not be created.')
+    } finally {
+      setIsBackingUp(false)
+    }
+  }
+
+  async function handleRestore(event) {
+    event.preventDefault()
+    const form = event.currentTarget
+    setError('')
+    setRestoreStatus('')
+    if (!restoreFile) {
+      setError('Choose a ChatFind backup file to restore.')
+      return
+    }
+    setIsRestoring(true)
+    try {
+      const snapshot = await openEncryptedBackup(restoreFile, restorePassword)
+      const report = await restoreLocalSnapshot(snapshot)
+      await requestPersistentStorage().catch(() => false)
+      await onRestored()
+      setRestoreStatus(
+        `Restored ${report.chats} chats, ${report.messages} messages, ${report.attachments} files and ${report.bookmarks} stars.`,
+      )
+      setRestorePassword('')
+      setRestoreFile(null)
+      form.reset()
+    } catch (restoreError) {
+      setError(restoreError instanceof Error ? restoreError.message : 'The backup could not be restored.')
+    } finally {
+      setIsRestoring(false)
+    }
+  }
+
+  return (
+    <section className="backup-section" aria-labelledby="backup-heading">
+      <div className="section-heading">
+        <div>
+          <span className="section-kicker">Day 8 protection</span>
+          <h2 id="backup-heading">Encrypted backup &amp; restore</h2>
+        </div>
+        <p>Your password never leaves this device.</p>
+      </div>
+
+      <div className="backup-grid">
+        <form className="backup-card" onSubmit={handleBackup}>
+          <span className="backup-number">01</span>
+          <div>
+            <h3>Download a protected copy</h3>
+            <p>Includes every local chat, message, attachment and starred item.</p>
+          </div>
+          <label>
+            <span>Backup password</span>
+            <input
+              type="password"
+              value={backupPassword}
+              minLength="8"
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              onChange={(event) => setBackupPassword(event.target.value)}
+              required
+            />
+          </label>
+          <label>
+            <span>Confirm password</span>
+            <input
+              type="password"
+              value={confirmPassword}
+              minLength="8"
+              autoComplete="new-password"
+              placeholder="Type it again"
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              required
+            />
+          </label>
+          <button type="submit" disabled={isBackingUp}>
+            {isBackingUp ? 'Encrypting backup…' : 'Download encrypted backup'}
+          </button>
+          {backupStatus && <p className="backup-success" role="status">{backupStatus}</p>}
+        </form>
+
+        <form className="backup-card" onSubmit={handleRestore}>
+          <span className="backup-number">02</span>
+          <div>
+            <h3>Restore on this device</h3>
+            <p>Merges the backup safely with chats already stored in this browser.</p>
+          </div>
+          <label className="backup-file-picker">
+            <span>Backup file</span>
+            <input
+              type="file"
+              accept=".chatfind-backup,application/octet-stream"
+              onChange={(event) => setRestoreFile(event.target.files?.[0] ?? null)}
+              required
+            />
+          </label>
+          <label>
+            <span>Backup password</span>
+            <input
+              type="password"
+              value={restorePassword}
+              minLength="8"
+              autoComplete="current-password"
+              placeholder="Password used for backup"
+              onChange={(event) => setRestorePassword(event.target.value)}
+              required
+            />
+          </label>
+          <button type="submit" disabled={isRestoring}>
+            {isRestoring ? 'Decrypting and restoring…' : 'Restore encrypted backup'}
+          </button>
+          {restoreStatus && <p className="backup-success" role="status">{restoreStatus}</p>}
+        </form>
+      </div>
+
+      {error && <p className="error-message backup-error" role="alert">{error}</p>}
+      <p className="backup-warning">
+        Keep the downloaded file and password separately. ChatFind cannot recover a forgotten password.
+      </p>
     </section>
   )
 }
@@ -971,6 +1131,7 @@ function App() {
         onViewContext={handleViewContext}
         onToggleBookmark={handleToggleBookmark}
       />
+      <BackupRestoreSection onRestored={refreshLibrary} />
       <PeopleGroupsDirectory
         directory={profileDirectory}
         onOpenPerson={handleOpenPerson}
@@ -1019,7 +1180,7 @@ function App() {
       )}
 
       <footer>
-        <span>Day 7 starred items</span>
+        <span>Day 8 encrypted backup</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>

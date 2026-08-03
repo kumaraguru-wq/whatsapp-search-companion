@@ -16,6 +16,7 @@ a server.
 - See the latest message date covered by every saved chat export in the local library.
 - Browse local person and group profiles with separate message, file, and link views.
 - Star individual messages, files, images, and links for persistent local Quick Access.
+- Download and restore a password-encrypted local backup containing chats, files, and stars.
 - Open stored search-result files and distinguish media that WhatsApp omitted from an export.
 - Browse category tabs and open the original message with nearby conversation context.
 - Open available file and link results by selecting their title; context remains a separate action.
