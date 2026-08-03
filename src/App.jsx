@@ -12,6 +12,11 @@ import {
 } from './lib/localDatabase.js'
 import { inferMimeType } from './lib/whatsappParser.js'
 import {
+  createProfileDirectory,
+  createProfileView,
+  filterProfileItems,
+} from './lib/profileViews.js'
+import {
   createSearchItems,
   getSearchOptions,
   SEARCH_TYPES,
@@ -187,7 +192,75 @@ function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
   )
 }
 
-function SearchSection({ items, filters, onFiltersChange, onOpenResult, onViewContext }) {
+function PeopleGroupsDirectory({ directory, onOpenPerson, onOpenGroup }) {
+  if (directory.people.length === 0 && directory.groups.length === 0) return null
+
+  return (
+    <section className="directory-section" aria-labelledby="directory-heading">
+      <div className="section-heading">
+        <div>
+          <span className="section-kicker">Day 6 directory</span>
+          <h2 id="directory-heading">People &amp; groups</h2>
+        </div>
+        <p>Open a profile to see everything shared.</p>
+      </div>
+
+      <div className="directory-columns">
+        <div className="directory-column">
+          <div className="directory-title-row">
+            <h3>People</h3>
+            <span>{directory.people.length}</span>
+          </div>
+          <div className="directory-list">
+            {directory.people.map((person) => (
+              <button key={person.id} type="button" onClick={() => onOpenPerson(person.name)}>
+                <span className="directory-avatar" aria-hidden="true">
+                  {person.name.trim().charAt(0).toUpperCase() || 'P'}
+                </span>
+                <span>
+                  <strong>{person.name}</strong>
+                  <small>{person.messageCount} messages · {person.fileCount} files · {person.groupCount} chats</small>
+                </span>
+                <span className="directory-arrow" aria-hidden="true">›</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="directory-column">
+          <div className="directory-title-row">
+            <h3>Groups</h3>
+            <span>{directory.groups.length}</span>
+          </div>
+          <div className="directory-list">
+            {directory.groups.map((group) => (
+              <button key={group.id} type="button" onClick={() => onOpenGroup(group.id, group.name)}>
+                <span className="directory-avatar group-avatar" aria-hidden="true">
+                  {group.name.trim().charAt(0).toUpperCase() || 'G'}
+                </span>
+                <span>
+                  <strong>{group.name}</strong>
+                  <small>{group.participantCount} people · {group.fileCount} files · {group.linkCount} links</small>
+                </span>
+                <span className="directory-arrow" aria-hidden="true">›</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function SearchSection({
+  items,
+  filters,
+  onFiltersChange,
+  onOpenResult,
+  onViewContext,
+  onOpenPerson,
+  onOpenGroup,
+}) {
   const options = useMemo(() => getSearchOptions(items), [items])
   const hasCriteria = Boolean(
     filters.query.trim() ||
@@ -308,24 +381,38 @@ function SearchSection({ items, filters, onFiltersChange, onOpenResult, onViewCo
               {results.map((result) => (
                 <article className="search-result-card" key={result.id}>
                   <span className={`result-kind kind-${result.kind}`}>{result.kind}</span>
-                  <button
-                    className="result-copy"
-                    type="button"
-                    aria-label={
-                      result.kind === 'chat' || !result.available
-                        ? `View context for ${result.title}`
-                        : `Open ${result.title}`
-                    }
-                    onClick={() => (
-                      result.kind === 'chat' || !result.available
-                        ? onViewContext(result)
-                        : onOpenResult(result)
-                    )}
-                  >
-                    <h3>{result.title}</h3>
-                    <p>{result.content || result.title}</p>
-                    <small>{result.chatName}{result.sender ? ` · ${result.sender}` : ''}</small>
-                  </button>
+                  <div className="result-main">
+                    <button
+                      className="result-copy"
+                      type="button"
+                      aria-label={
+                        result.kind === 'chat' || !result.available
+                          ? `View context for ${result.title}`
+                          : `Open ${result.title}`
+                      }
+                      onClick={() => (
+                        result.kind === 'chat' || !result.available
+                          ? onViewContext(result)
+                          : onOpenResult(result)
+                      )}
+                    >
+                      <h3>{result.title}</h3>
+                      <p>{result.content || result.title}</p>
+                    </button>
+                    <span className="result-profile-links">
+                      <button type="button" onClick={() => onOpenGroup(result.chatId, result.chatName)}>
+                        {result.chatName}
+                      </button>
+                      {result.sender && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <button type="button" onClick={() => onOpenPerson(result.sender)}>
+                            {result.sender}
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  </div>
                   <span className="result-tail">
                     <time>{result.timestamp?.slice(0, 10) ?? result.dateText}</time>
                     {!result.available ? (
@@ -409,6 +496,130 @@ function MessageContextViewer({ context, onClose, onOpenAttachment }) {
         <footer>
           The highlighted message is the matching result. Nearby messages provide context.
         </footer>
+      </section>
+    </div>
+  )
+}
+
+const PROFILE_TABS = [
+  { value: 'all', label: 'All' },
+  { value: 'messages', label: 'Messages' },
+  { value: 'files', label: 'Files' },
+  { value: 'links', label: 'Links' },
+]
+
+function ProfileViewer({
+  profile,
+  onClose,
+  onOpenResult,
+  onViewContext,
+  onOpenPerson,
+  onOpenGroup,
+}) {
+  const [tab, setTab] = useState('all')
+
+  useEffect(() => setTab('all'), [profile.id, profile.type])
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  const tabCounts = {
+    all: profile.items.length,
+    messages: profile.messages.length,
+    files: profile.files.length,
+    links: profile.links.length,
+  }
+  const visibleItems = [...filterProfileItems(profile, tab)]
+    .sort((left, right) => (right.timestamp ?? '').localeCompare(left.timestamp ?? ''))
+    .slice(0, 100)
+
+  return (
+    <div
+      className="profile-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <section className="profile-panel" role="dialog" aria-modal="true" aria-labelledby="profile-heading">
+        <header className="profile-header">
+          <div className={`profile-hero-avatar ${profile.type === 'group' ? 'group-avatar' : ''}`} aria-hidden="true">
+            {profile.name.trim().charAt(0).toUpperCase() || 'C'}
+          </div>
+          <div className="profile-heading-copy">
+            <span className="section-kicker">{profile.type === 'person' ? 'Person profile' : 'Group view'}</span>
+            <h2 id="profile-heading">{profile.name}</h2>
+            <p>
+              {profile.messages.length} messages · {profile.files.length} files · {profile.links.length} links
+              {profile.latestTimestamp && ` · through ${formatChatCoverageDate(profile.latestTimestamp)}`}
+            </p>
+          </div>
+          <button className="context-close" type="button" onClick={onClose} aria-label="Close profile">×</button>
+        </header>
+
+        <div className="profile-related">
+          <strong>{profile.type === 'person' ? 'Appears in' : 'Participants'}</strong>
+          <div>
+            {profile.type === 'person'
+              ? profile.groups.map((groupName) => {
+                const groupItem = profile.items.find((item) => item.chatName === groupName)
+                return (
+                  <button key={groupName} type="button" onClick={() => onOpenGroup(groupItem.chatId, groupName)}>
+                    {groupName}
+                  </button>
+                )
+              })
+              : profile.participants.map((participant) => (
+                <button key={participant} type="button" onClick={() => onOpenPerson(participant)}>
+                  {participant}
+                </button>
+              ))}
+          </div>
+        </div>
+
+        <div className="profile-tabs" role="tablist" aria-label="Profile categories">
+          {PROFILE_TABS.map((profileTab) => (
+            <button
+              className={tab === profileTab.value ? 'is-active' : ''}
+              key={profileTab.value}
+              type="button"
+              role="tab"
+              aria-selected={tab === profileTab.value}
+              onClick={() => setTab(profileTab.value)}
+            >
+              {profileTab.label}<span>{tabCounts[profileTab.value]}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="profile-items">
+          {visibleItems.length === 0 ? (
+            <p className="profile-empty">Nothing has been shared in this category.</p>
+          ) : visibleItems.map((item) => (
+            <article key={item.id}>
+              <span className={`result-kind kind-${item.kind}`}>{item.kind}</span>
+              <button
+                type="button"
+                onClick={() => (
+                  item.kind === 'chat' || !item.available
+                    ? onViewContext(item)
+                    : onOpenResult(item)
+                )}
+              >
+                <strong>{item.kind === 'chat' ? (item.content || 'Message') : item.title}</strong>
+                {item.kind !== 'chat' && <small>{item.content || item.chatName}</small>}
+              </button>
+              <span className="profile-item-meta">
+                <time>{item.timestamp?.slice(0, 10) ?? item.dateText}</time>
+                {profile.type === 'person' ? item.chatName : (item.sender || 'WhatsApp system')}
+              </span>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   )
@@ -511,6 +722,12 @@ function App() {
   const [searchFilters, setSearchFilters] = useState({ ...EMPTY_SEARCH_FILTERS })
   const [messageContext, setMessageContext] = useState(null)
   const [isContextLoading, setIsContextLoading] = useState(false)
+  const [profileSelection, setProfileSelection] = useState(null)
+  const profileDirectory = useMemo(() => createProfileDirectory(searchIndex), [searchIndex])
+  const activeProfile = useMemo(
+    () => (profileSelection ? createProfileView(searchIndex, profileSelection) : null),
+    [profileSelection, searchIndex],
+  )
 
   useEffect(() => () => releaseImport(importedChat), [importedChat])
   useEffect(() => () => releaseImport(messageContext), [messageContext])
@@ -618,6 +835,14 @@ function App() {
     }
   }
 
+  function handleOpenPerson(name) {
+    setProfileSelection({ type: 'person', id: name, name })
+  }
+
+  function handleOpenGroup(id, name) {
+    setProfileSelection({ type: 'group', id, name })
+  }
+
   return (
     <main>
       <nav className="topbar" aria-label="Primary navigation">
@@ -644,12 +869,19 @@ function App() {
         isOpening={isOpening}
       />
       {libraryError && <p className="error-message library-error" role="alert">{libraryError}</p>}
+      <PeopleGroupsDirectory
+        directory={profileDirectory}
+        onOpenPerson={handleOpenPerson}
+        onOpenGroup={handleOpenGroup}
+      />
       <SearchSection
         items={searchIndex}
         filters={searchFilters}
         onFiltersChange={setSearchFilters}
         onOpenResult={handleOpenSearchResult}
         onViewContext={handleViewContext}
+        onOpenPerson={handleOpenPerson}
+        onOpenGroup={handleOpenGroup}
       />
       {isContextLoading && <p className="context-loading" role="status">Opening message context…</p>}
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
@@ -666,8 +898,22 @@ function App() {
         />
       )}
 
+      {activeProfile && (
+        <ProfileViewer
+          profile={activeProfile}
+          onClose={() => setProfileSelection(null)}
+          onOpenResult={handleOpenSearchResult}
+          onViewContext={(result) => {
+            setProfileSelection(null)
+            handleViewContext(result)
+          }}
+          onOpenPerson={handleOpenPerson}
+          onOpenGroup={handleOpenGroup}
+        />
+      )}
+
       <footer>
-        <span>Day 5 result explorer</span>
+        <span>Day 6 people &amp; groups</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>
