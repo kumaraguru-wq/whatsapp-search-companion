@@ -1,5 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { importWhatsAppFile, releaseImport } from './lib/importWhatsApp.js'
+import {
+  getStorageEstimate,
+  listStoredChats,
+  loadStoredChat,
+  requestPersistentStorage,
+  saveImportedChat,
+} from './lib/localDatabase.js'
 
 function ShieldIcon() {
   return (
@@ -42,7 +49,12 @@ function ImportPanel({ onImported, importedChat }) {
 
     try {
       const result = await importWhatsAppFile(file)
-      onImported(result)
+      try {
+        await onImported(result)
+      } catch (saveError) {
+        releaseImport(result)
+        throw saveError
+      }
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : 'The chat could not be imported.')
     } finally {
@@ -99,7 +111,39 @@ function ImportPanel({ onImported, importedChat }) {
   )
 }
 
-function ImportPreview({ chat }) {
+function SavedChats({ chats, storageEstimate, onOpen, isOpening }) {
+  if (chats.length === 0) return null
+
+  return (
+    <section className="library-section" aria-labelledby="library-heading">
+      <div className="section-heading">
+        <div>
+          <span className="section-kicker">Saved on this device</span>
+          <h2 id="library-heading">Your chat library</h2>
+        </div>
+        {storageEstimate && (
+          <p>{formatBytes(storageEstimate.usage)} used locally</p>
+        )}
+      </div>
+      <div className="chat-library">
+        {chats.map((chat) => (
+          <button key={chat.id} type="button" onClick={() => onOpen(chat.id)} disabled={isOpening}>
+            <span className="chat-initial" aria-hidden="true">
+              {chat.name.trim().charAt(0).toUpperCase() || 'C'}
+            </span>
+            <span className="chat-card-copy">
+              <strong>{chat.name}</strong>
+              <small>{chat.messageCount} messages · {chat.attachmentCount} files</small>
+            </span>
+            <time>{new Date(chat.updatedAt).toLocaleDateString()}</time>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ImportPreview({ chat, importReport }) {
   const linkCount = chat.messages.reduce((total, message) => total + message.links.length, 0)
   const recentMessages = chat.messages.slice(-12)
 
@@ -113,6 +157,16 @@ function ImportPreview({ chat }) {
         </div>
         <span className="parsed-badge">Parsed successfully</span>
       </div>
+
+      {importReport && (
+        <div className="save-report" role="status">
+          <strong>Saved on this device</strong>
+          <span>
+            {importReport.addedMessages} new messages · {importReport.duplicateMessages} duplicates skipped
+            {' · '}{importReport.addedAttachments} new files
+          </span>
+        </div>
+      )}
 
       <div className="summary-grid">
         <div><strong>{chat.messages.length.toLocaleString()}</strong><span>messages</span></div>
@@ -169,7 +223,7 @@ function ImportPreview({ chat }) {
       </div>
 
       <p className="storage-note">
-        Preview only. Permanent on-device storage and duplicate detection arrive on Day 3.
+        Stored only in this browser using IndexedDB. Re-import this chat anytime to add new messages.
       </p>
     </section>
   )
@@ -177,14 +231,53 @@ function ImportPreview({ chat }) {
 
 function App() {
   const [importedChat, setImportedChat] = useState(null)
+  const [importReport, setImportReport] = useState(null)
+  const [storedChats, setStoredChats] = useState([])
+  const [storageEstimate, setStorageEstimate] = useState(null)
+  const [libraryError, setLibraryError] = useState('')
+  const [isOpening, setIsOpening] = useState(false)
 
   useEffect(() => () => releaseImport(importedChat), [importedChat])
 
-  function handleImported(nextChat) {
+  const refreshLibrary = useCallback(async () => {
+    const [chats, estimate] = await Promise.all([listStoredChats(), getStorageEstimate()])
+    setStoredChats(chats)
+    setStorageEstimate(estimate)
+  }, [])
+
+  useEffect(() => {
+    refreshLibrary().catch((error) => {
+      setLibraryError(error instanceof Error ? error.message : 'Saved chats could not be opened.')
+    })
+  }, [refreshLibrary])
+
+  async function handleImported(nextChat) {
+    const report = await saveImportedChat(nextChat)
+    await requestPersistentStorage().catch(() => false)
     setImportedChat(nextChat)
+    setImportReport(report)
+    setLibraryError('')
+    await refreshLibrary()
     window.requestAnimationFrame(() => {
       document.querySelector('.preview-section')?.scrollIntoView({ behavior: 'smooth' })
     })
+  }
+
+  async function handleOpenStoredChat(chatId) {
+    setIsOpening(true)
+    setLibraryError('')
+    try {
+      const chat = await loadStoredChat(chatId)
+      setImportedChat(chat)
+      setImportReport(null)
+      window.requestAnimationFrame(() => {
+        document.querySelector('.preview-section')?.scrollIntoView({ behavior: 'smooth' })
+      })
+    } catch (error) {
+      setLibraryError(error instanceof Error ? error.message : 'That chat could not be opened.')
+    } finally {
+      setIsOpening(false)
+    }
   }
 
   return (
@@ -206,11 +299,18 @@ function App() {
         </p>
       </section>
 
+      <SavedChats
+        chats={storedChats}
+        storageEstimate={storageEstimate}
+        onOpen={handleOpenStoredChat}
+        isOpening={isOpening}
+      />
+      {libraryError && <p className="error-message library-error" role="alert">{libraryError}</p>}
       <ImportPanel onImported={handleImported} importedChat={importedChat} />
-      {importedChat && <ImportPreview chat={importedChat} />}
+      {importedChat && <ImportPreview chat={importedChat} importReport={importReport} />}
 
       <footer>
-        <span>Day 2 importer</span>
+        <span>Day 3 local library</span>
         <span className="dot" aria-hidden="true" />
         <span>Offline-ready PWA</span>
       </footer>

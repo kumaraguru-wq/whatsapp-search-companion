@@ -10,9 +10,11 @@ a server.
 - Open `.zip` exports and match included attachments to their messages.
 - Recognize senders, dates, multiline messages, links and system messages.
 - Preview participants, recent messages and extracted files without uploading them.
+- Persist chats, messages and attachments in IndexedDB on the current device.
+- Skip duplicate messages and files when the same export is imported again.
 
-Day 2 imports are held in memory for preview. IndexedDB persistence and duplicate
-detection are intentionally reserved for Day 3.
+ChatFind requests persistent browser storage where supported, but encrypted
+downloadable backups are still planned for Day 8.
 
 ## Import a chat
 
