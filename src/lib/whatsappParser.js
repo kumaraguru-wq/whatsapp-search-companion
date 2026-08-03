@@ -98,7 +98,7 @@ function toTimestamp(dateText, timeText, order) {
 }
 
 function trimLink(link) {
-  return link.replace(/[),.!?;:'\"]+$/gu, '')
+  return link.replace(/[),.!?;:'"]+$/gu, '')
 }
 
 function extractLinks(content) {
@@ -189,4 +189,3 @@ export function classifyAttachment(filename) {
   if (['mp4', 'mov', 'm4v', 'webm', '3gp'].includes(extension)) return 'video'
   return 'other'
 }
-
